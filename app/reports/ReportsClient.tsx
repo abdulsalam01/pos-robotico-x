@@ -31,6 +31,7 @@ export default function ReportsClient() {
   const [vendors, setVendors] = useState<OptionRow[]>([]);
   const [products, setProducts] = useState<OptionRow[]>([]);
   const [page, setPage] = useState(1);
+  const [reportNotice, setReportNotice] = useState<string | null>(null);
   const pageSize = 10;
 
   useEffect(() => {
@@ -70,6 +71,7 @@ export default function ReportsClient() {
   const handleGenerate = async (printPdf: boolean) => {
     setLoading(true);
     setPage(1);
+    setReportNotice(null);
     try {
       if (reportType === "sales") {
         let query = supabase
@@ -80,7 +82,10 @@ export default function ReportsClient() {
           query = query.eq("customer_id", customerId);
         }
         query = applyDateFilters(query);
-        const { data } = await query;
+        const { data, error } = await query;
+        if (error) {
+          throw error;
+        }
         const rows =
           data?.map((row) => ({
             title: row.invoice_no,
@@ -89,6 +94,9 @@ export default function ReportsClient() {
             date: row.created_at
           })) ?? [];
         setReportRows(rows);
+        if (rows.length === 0) {
+          setReportNotice("No sales data found for the selected filters.");
+        }
         if (printPdf) {
           generatePdf(rows, "Sales report");
         }
@@ -111,7 +119,10 @@ export default function ReportsClient() {
         if (dateTo) {
           query = query.lte("purchased_at", dateTo);
         }
-        const { data } = await query;
+        const { data, error } = await query;
+        if (error) {
+          throw error;
+        }
         const rows =
           data?.map((row) => ({
             title: row.product?.name ?? "Product",
@@ -120,6 +131,9 @@ export default function ReportsClient() {
             date: row.purchased_at
           })) ?? [];
         setReportRows(rows);
+        if (rows.length === 0) {
+          setReportNotice("No purchase data found for the selected filters.");
+        }
         if (printPdf) {
           generatePdf(rows, "Purchase report");
         }
@@ -136,7 +150,10 @@ export default function ReportsClient() {
         if (dateTo) {
           query = query.lte("created_at", dateTo);
         }
-        const { data } = await query;
+        const { data, error } = await query;
+        if (error) {
+          throw error;
+        }
         const rows =
           data?.map((row) => ({
             title: `${row.variant?.product?.name ?? "Product"} ${row.variant?.bottle_size_ml ?? 0}${row.variant?.unit_label ?? "ml"}`,
@@ -145,10 +162,18 @@ export default function ReportsClient() {
             date: row.created_at
           })) ?? [];
         setReportRows(rows);
+        if (rows.length === 0) {
+          setReportNotice("No inventory movement found for the selected filters.");
+        }
         if (printPdf) {
           generatePdf(rows, "Inventory movement report");
         }
       }
+    } catch (error) {
+      setReportRows([]);
+      setReportNotice(
+        error instanceof Error ? error.message : "Unable to load report data. Please try again."
+      );
     } finally {
       setLoading(false);
     }
@@ -307,6 +332,11 @@ export default function ReportsClient() {
           </Button>
         </div>
         <div className="mt-4 space-y-3">
+          {reportNotice ? (
+            <div className="rounded-xl border border-coral-200 bg-coral-50 p-4 text-xs text-coral-700 dark:border-coral-500/30 dark:bg-coral-500/10 dark:text-coral-200">
+              {reportNotice}
+            </div>
+          ) : null}
           {visibleRows.length === 0 ? (
             <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-xs text-slate-500 dark:border-white/10 dark:bg-white/5 dark:text-slate-300">
               Run a report to see data.

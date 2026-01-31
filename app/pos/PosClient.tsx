@@ -20,6 +20,7 @@ interface CartItem {
   quantity: number;
   sku?: string | null;
   variantId?: string | null;
+  unitPrice: number;
 }
 
 export default function PosClient({
@@ -36,7 +37,8 @@ export default function PosClient({
   const [actionNotice, setActionNotice] = useState<string | null>(null);
   const [selectedPayment, setSelectedPayment] = useState<string | null>(null);
   const [cashReceived, setCashReceived] = useState("");
-  const [changeReturned, setChangeReturned] = useState("");
+  const [discountType, setDiscountType] = useState<"fixed" | "percentage">("fixed");
+  const [discountValue, setDiscountValue] = useState("");
   const [scannerValue, setScannerValue] = useState("");
   const scannerInputRef = useRef<HTMLInputElement | null>(null);
   const [productPage, setProductPage] = useState(1);
@@ -66,6 +68,8 @@ export default function PosClient({
   const parseIdr = (value: string) => value.replace(/[^\d]/g, "");
 
   const handleAddToCart = (product: ProductRow) => {
+    const productVariants = variants.filter((variant) => variant.product_id === product.id);
+    const unitPrice = productVariants.length ? Number(productVariants[0].price) : 0;
     setCartItems((prev) => {
       const existing = prev.find((item) => item.id === product.id);
       if (existing) {
@@ -73,7 +77,16 @@ export default function PosClient({
           item.id === product.id ? { ...item, quantity: item.quantity + 1 } : item
         );
       }
-      return [...prev, { id: product.id, name: product.name, quantity: 1, sku: product.sku }];
+      return [
+        {
+          id: product.id,
+          name: product.name,
+          quantity: 1,
+          sku: product.sku,
+          unitPrice
+        },
+        ...prev
+      ];
     });
     setNotice(`${translate(locale, "Add to cart")}: ${product.name}.`);
   };
@@ -95,7 +108,8 @@ export default function PosClient({
           name,
           quantity: 1,
           sku: variant.barcode ?? null,
-          variantId: variant.id
+          variantId: variant.id,
+          unitPrice: Number(variant.price)
         }
       ];
     });
@@ -157,6 +171,39 @@ export default function PosClient({
     () => cartItems.reduce((sum, item) => sum + item.quantity, 0),
     [cartItems]
   );
+
+  const subtotal = useMemo(
+    () => cartItems.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0),
+    [cartItems]
+  );
+
+  const discountAmount = useMemo(() => {
+    const value = Number(discountValue || 0);
+    if (!value) {
+      return 0;
+    }
+    if (discountType === "percentage") {
+      return Math.min(subtotal, subtotal * (value / 100));
+    }
+    return Math.min(subtotal, value);
+  }, [discountType, discountValue, subtotal]);
+
+  const totalDue = useMemo(() => Math.max(subtotal - discountAmount, 0), [subtotal, discountAmount]);
+
+  const selectedPaymentLabel = useMemo(() => {
+    const method = paymentMethods.find((item) => item.id === selectedPayment);
+    return method?.label ?? "";
+  }, [paymentMethods, selectedPayment]);
+
+  const isCashPayment = useMemo(() => /cash|tunai/i.test(selectedPaymentLabel), [selectedPaymentLabel]);
+
+  const changeDue = useMemo(() => {
+    if (!isCashPayment) {
+      return 0;
+    }
+    const received = Number(cashReceived || 0);
+    return Math.max(received - totalDue, 0);
+  }, [cashReceived, isCashPayment, totalDue]);
 
   const visibleProducts = useMemo(
     () => products.slice(0, productPage * productPageSize),
@@ -303,6 +350,18 @@ export default function PosClient({
           </div>
         ) : null}
         <div className="space-y-3 border-t border-slate-200 pt-4 text-sm dark:border-white/10">
+          <div className="flex items-center justify-between text-sm text-slate-700 dark:text-slate-200">
+            <span>Subtotal</span>
+            <span>Rp {formatIdr(String(Math.round(subtotal))) || "0"}</span>
+          </div>
+          <div className="flex items-center justify-between text-sm text-slate-700 dark:text-slate-200">
+            <span>Discount</span>
+            <span>- Rp {formatIdr(String(Math.round(discountAmount))) || "0"}</span>
+          </div>
+          <div className="flex items-center justify-between text-base font-semibold text-slate-900 dark:text-white">
+            <span>Total due</span>
+            <span>Rp {formatIdr(String(Math.round(totalDue))) || "0"}</span>
+          </div>
           {summaryLines.map((line) => {
             const valueClass =
               line.accent === "mint"
@@ -345,6 +404,32 @@ export default function PosClient({
               </button>
             ))}
           </div>
+          <div className="grid gap-3 sm:grid-cols-3">
+            <label className="text-xs font-semibold text-slate-600 dark:text-slate-200">
+              Discount type
+              <select
+                className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 dark:border-white/10 dark:bg-white/5 dark:text-white"
+                value={discountType}
+                onChange={(event) => setDiscountType(event.target.value as "fixed" | "percentage")}
+              >
+                <option value="fixed">Fixed amount</option>
+                <option value="percentage">Percentage</option>
+              </select>
+            </label>
+            <label className="text-xs font-semibold text-slate-600 dark:text-slate-200">
+              Discount value
+              <input
+                className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 placeholder:text-slate-400 dark:border-white/10 dark:bg-white/5 dark:text-white dark:placeholder:text-slate-500"
+                placeholder={discountType === "percentage" ? "%" : "Rp"}
+                inputMode="numeric"
+                value={discountValue}
+                onChange={(event) => setDiscountValue(parseIdr(event.target.value))}
+              />
+            </label>
+            <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs text-slate-500 dark:border-white/10 dark:bg-white/5 dark:text-slate-300">
+              Discount applied: Rp {formatIdr(String(Math.round(discountAmount))) || "0"}
+            </div>
+          </div>
           <div className="grid gap-3 sm:grid-cols-2">
             <input
               className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 placeholder:text-slate-400 dark:border-white/10 dark:bg-white/5 dark:text-white dark:placeholder:text-slate-500"
@@ -352,13 +437,15 @@ export default function PosClient({
               inputMode="numeric"
               value={formatIdr(cashReceived)}
               onChange={(event) => setCashReceived(parseIdr(event.target.value))}
+              disabled={!isCashPayment}
             />
             <input
               className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 placeholder:text-slate-400 dark:border-white/10 dark:bg-white/5 dark:text-white dark:placeholder:text-slate-500"
               placeholder={translate(locale, "Change returned")}
               inputMode="numeric"
-              value={formatIdr(changeReturned)}
-              onChange={(event) => setChangeReturned(parseIdr(event.target.value))}
+              value={isCashPayment ? formatIdr(String(Math.round(changeDue))) : "—"}
+              readOnly
+              disabled={!isCashPayment}
             />
           </div>
         </div>
