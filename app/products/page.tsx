@@ -1,7 +1,7 @@
 import Link from "next/link";
 import AppShell from "@/components/AppShell";
 import { Badge, Button, Card, SectionHeader } from "@/components/ui";
-import { fetchProductsWithCursor, fetchVariantsWithCursor } from "@/lib/data";
+import { fetchProductsWithCursor, fetchUiContent, fetchVariantsWithCursor } from "@/lib/data";
 
 interface ProductsPageProps {
   searchParams?: { cursor?: string };
@@ -9,8 +9,11 @@ interface ProductsPageProps {
 
 export default async function ProductsPage({ searchParams }: ProductsPageProps) {
   const cursor = searchParams?.cursor;
-  const { data, nextCursor } = await fetchProductsWithCursor(cursor);
-  const { data: variants } = await fetchVariantsWithCursor();
+  const [{ data: products, nextCursor }, variants, detailFields] = await Promise.all([
+    fetchProductsWithCursor(cursor),
+    fetchVariantsWithCursor().then((response) => response.data),
+    fetchUiContent("products", "detail_fields")
+  ]);
 
   return (
     <AppShell
@@ -24,12 +27,12 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
           action={<Button>Add new product</Button>}
         />
         <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {data.length === 0 ? (
+          {products.length === 0 ? (
             <div className="rounded-2xl border border-white/10 bg-white/5 p-6 text-sm text-slate-300">
               No products yet. Add a product to start tracking variants and inventory.
             </div>
           ) : (
-            data.map((product) => (
+            products.map((product) => (
               <div key={product.id} className="rounded-2xl border border-white/10 bg-white/5 p-4">
                 <div className="flex items-start justify-between">
                   <div>
@@ -70,16 +73,9 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
             subtitle="Capture bottle size, stock, and pricing per variant."
           />
           <div className="mt-4 grid gap-4 md:grid-cols-2">
-            {[
-              "Product name",
-              "Brand / Notes",
-              "Base oil (ml/l)",
-              "Barcode / SKU",
-              "Image upload",
-              "Full-text search tags"
-            ].map((label) => (
-              <div key={label} className="rounded-xl border border-white/10 bg-white/5 p-4 text-sm text-slate-300">
-                {label}
+            {detailFields.map((field) => (
+              <div key={field.id} className="rounded-xl border border-white/10 bg-white/5 p-4 text-sm text-slate-300">
+                {field.label}
               </div>
             ))}
           </div>

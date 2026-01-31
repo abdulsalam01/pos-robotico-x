@@ -98,6 +98,20 @@ create table transaction_items (
   total numeric not null
 );
 
+create table ui_content (
+  id uuid primary key default gen_random_uuid(),
+  page text not null,
+  section text not null,
+  label text not null,
+  value text,
+  note text,
+  accent text,
+  href text,
+  icon text,
+  position integer default 0,
+  created_at timestamptz default now()
+);
+
 create index products_created_at_idx on products(created_at desc);
 create index products_status_idx on products(status);
 create index product_variants_product_id_idx on product_variants(product_id);
@@ -112,3 +126,4 @@ create index products_search_idx on products using gin(search_vector);
 create index variants_barcode_idx on product_variants(barcode);
 create index transactions_created_at_idx on transactions(created_at desc);
 create index transaction_items_transaction_id_idx on transaction_items(transaction_id);
+create index ui_content_page_section_idx on ui_content(page, section, position);

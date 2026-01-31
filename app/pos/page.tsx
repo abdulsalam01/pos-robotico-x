@@ -1,9 +1,14 @@
 import AppShell from "@/components/AppShell";
 import { Badge, Button, Card, SectionHeader } from "@/components/ui";
-import { fetchProductsWithCursor } from "@/lib/data";
+import { fetchProductsWithCursor, fetchUiContent } from "@/lib/data";
 
 export default async function PosPage() {
-  const { data: products } = await fetchProductsWithCursor();
+  const [products, customerFields, paymentMethods, summaryLines] = await Promise.all([
+    fetchProductsWithCursor().then((response) => response.data),
+    fetchUiContent("pos", "customer_fields"),
+    fetchUiContent("pos", "payment_methods"),
+    fetchUiContent("pos", "summary_lines")
+  ]);
 
   return (
     <AppShell
@@ -50,27 +55,22 @@ export default async function PosPage() {
           </Card>
 
           <Card>
-            <SectionHeader
-              title="Customer & CRM"
-              subtitle="Optional fields help create loyalty campaigns and targeted discounts."
-            />
-            <div className="mt-4 grid gap-4 md:grid-cols-2">
-              {[
-                "Customer name",
-                "Phone or WhatsApp",
-                "Email (optional)",
-                "Birthday / Notes"
-              ].map((placeholder) => (
-                <input
-                  key={placeholder}
-                  className="rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-slate-500"
-                  placeholder={placeholder}
-                />
-              ))}
-            </div>
-            <div className="mt-4 flex flex-wrap gap-3">
-              <Button variant="secondary">Apply member discount</Button>
-              <Button variant="ghost">Save for next visit</Button>
+          <SectionHeader
+            title="Customer & CRM"
+            subtitle="Optional fields help create loyalty campaigns and targeted discounts."
+          />
+          <div className="mt-4 grid gap-4 md:grid-cols-2">
+            {customerFields.map((field) => (
+              <input
+                key={field.id}
+                className="rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-slate-500"
+                placeholder={field.label}
+              />
+            ))}
+          </div>
+          <div className="mt-4 flex flex-wrap gap-3">
+            <Button variant="secondary">Apply member discount</Button>
+            <Button variant="ghost">Save for next visit</Button>
             </div>
           </Card>
         </div>
@@ -83,39 +83,35 @@ export default async function PosPage() {
             </div>
           </div>
           <div className="space-y-3 border-t border-white/10 pt-4 text-sm">
-            <div className="flex items-center justify-between">
-              <span className="text-slate-400">Subtotal</span>
-              <span className="text-white">Rp 0</span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-slate-400">Discount (Member 10%)</span>
-              <span className="text-mint-300">Rp 0</span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-slate-400">Tax</span>
-              <span className="text-white">Rp 0</span>
-            </div>
-            <div className="flex items-center justify-between text-base font-semibold">
-              <span>Total</span>
-              <span>Rp 0</span>
-            </div>
+            {summaryLines.map((line) => {
+              const valueClass =
+                line.accent === "mint"
+                  ? "text-mint-300"
+                  : line.accent === "strong"
+                  ? "text-white text-base font-semibold"
+                  : "text-white";
+              const labelClass =
+                line.accent === "strong" ? "text-base font-semibold" : "text-slate-400";
+              return (
+                <div
+                  key={line.id}
+                  className={`flex items-center justify-between ${line.accent === "strong" ? "text-base font-semibold" : ""}`}
+                >
+                  <span className={labelClass}>{line.label}</span>
+                  <span className={valueClass}>{line.value ?? "Rp 0"}</span>
+                </div>
+              );
+            })}
           </div>
           <div className="space-y-3">
             <SectionHeader title="Payment" subtitle="Choose method and input cash received." />
             <div className="grid gap-3 sm:grid-cols-3">
-              {[
-                "Cash",
-                "QRIS",
-                "Debit",
-                "Credit",
-                "E-Wallet",
-                "Transfer"
-              ].map((method) => (
+              {paymentMethods.map((method) => (
                 <button
-                  key={method}
+                  key={method.id}
                   className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-semibold text-slate-200 transition hover:bg-white/10"
                 >
-                  {method}
+                  {method.label}
                 </button>
               ))}
             </div>
