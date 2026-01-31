@@ -1,8 +1,8 @@
 import AppShell from "@/components/AppShell";
-import ActionButton from "@/components/ActionButton";
 import { Card, SectionHeader } from "@/components/ui";
 import { fetchDiscountsWithCursor, fetchUiContent } from "@/lib/data";
 import DiscountsClient from "@/app/discounts/DiscountsClient";
+import DiscountSimulation from "@/app/discounts/DiscountSimulation";
 import { getServerLocale } from "@/lib/i18n.server";
 import { translate } from "@/lib/i18n";
 
@@ -55,11 +55,7 @@ export default async function DiscountsPage({ searchParams }: DiscountsPageProps
               <p key={item.id}>✅ {item.label}</p>
             ))}
           </div>
-          <ActionButton
-            label={translate(locale, "Run simulation")}
-            variant="secondary"
-            message={translate(locale, "Action completed successfully.")}
-          />
+          <DiscountSimulation discounts={data} />
         </Card>
       </section>
     </AppShell>

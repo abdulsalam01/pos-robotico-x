@@ -1,5 +1,6 @@
 import AppShell from "@/components/AppShell";
 import ActionButton from "@/components/ActionButton";
+import DashboardExportButton from "@/components/DashboardExportButton";
 import ActionList from "@/components/ActionList";
 import { BarChart, DonutChart, Gauge, LineChart } from "@/components/Charts";
 import { Badge, Card, SectionHeader, StatCard } from "@/components/ui";
@@ -159,10 +160,15 @@ export default async function HomePage() {
             title={translate(locale, "Sales pulse")}
             subtitle={translate(locale, "Revenue trend, average basket, and peak hours at a glance.")}
             action={
-              <ActionButton
+              <DashboardExportButton
                 label={translate(locale, "Export insights")}
-                variant="secondary"
-                message={translate(locale, "Action completed successfully.")}
+                filename="dashboard-insights.csv"
+                payload={{
+                  revenue: Math.round(revenueTotal),
+                  average_basket: Math.round(avgBasket),
+                  transactions: transactionCount,
+                  today_revenue: Math.round(todayRevenue)
+                }}
               />
             }
           />

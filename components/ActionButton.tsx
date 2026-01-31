@@ -8,14 +8,26 @@ interface ActionButtonProps {
   message?: string;
   variant?: "primary" | "secondary" | "ghost";
   className?: string;
+  onClick?: () => void;
 }
 
-export default function ActionButton({ label, message, variant = "primary", className }: ActionButtonProps) {
+export default function ActionButton({
+  label,
+  message,
+  variant = "primary",
+  className,
+  onClick
+}: ActionButtonProps) {
   const [notice, setNotice] = useState<string | null>(null);
 
   const handleClick = () => {
-    setNotice(message ?? `${label} queued.`);
-    window.setTimeout(() => setNotice(null), 2400);
+    if (onClick) {
+      onClick();
+    }
+    if (message) {
+      setNotice(message);
+      window.setTimeout(() => setNotice(null), 2400);
+    }
   };
 
   return (
