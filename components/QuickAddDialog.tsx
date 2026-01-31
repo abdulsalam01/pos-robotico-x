@@ -21,6 +21,7 @@ interface QuickAddDialogProps {
   triggerLabel: string;
   submitLabel?: string;
   fields: QuickAddField[];
+  initialValues?: Record<string, string>;
   onSubmit: (values: Record<string, string>) => Promise<void>;
 }
 
@@ -30,6 +31,7 @@ export default function QuickAddDialog({
   triggerLabel,
   submitLabel,
   fields,
+  initialValues,
   onSubmit
 }: QuickAddDialogProps) {
   const { locale } = useLanguage();
@@ -49,6 +51,18 @@ export default function QuickAddDialog({
     setError(null);
   };
 
+  const handleOpen = () => {
+    const seeded = fields.reduce(
+      (acc, field) => ({
+        ...acc,
+        [field.name]: initialValues?.[field.name] ?? ""
+      }),
+      {}
+    );
+    setValues(seeded);
+    setOpen(true);
+  };
+
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
     setError(null);
@@ -66,7 +80,7 @@ export default function QuickAddDialog({
 
   return (
     <>
-      <Button onClick={() => setOpen(true)}>{translate(locale, triggerLabel)}</Button>
+      <Button onClick={handleOpen}>{translate(locale, triggerLabel)}</Button>
       {open ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4">
           <div className="w-full max-w-lg rounded-2xl border border-slate-200 bg-white p-6 shadow-soft dark:border-white/10 dark:bg-slate-900">

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ChangeEvent } from "react";
 import Link from "next/link";
 import { Badge, Button, Card, SectionHeader } from "@/components/ui";
 import type { ProductRow, UiContentRow, VariantRow } from "@/lib/data";
@@ -16,16 +16,103 @@ interface ProductsClientProps {
   nextCursor: string | null;
 }
 
+interface ProductImageRow {
+  id: string;
+  image_url: string;
+}
+
 export default function ProductsClient({ products, variants, detailFields, nextCursor }: ProductsClientProps) {
   const { locale } = useLanguage();
   const [selectedProductId, setSelectedProductId] = useState<string | null>(products[0]?.id ?? null);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [productList, setProductList] = useState<ProductRow[]>(products);
+  const [variantList, setVariantList] = useState<VariantRow[]>(variants);
+  const [variantStock, setVariantStock] = useState<Record<string, number>>({});
+  const [productImages, setProductImages] = useState<ProductImageRow[]>([]);
 
   const selectedProduct = useMemo(
     () => productList.find((product) => product.id === selectedProductId) ?? productList[0],
     [productList, selectedProductId]
   );
+
+  const filteredVariants = useMemo(
+    () => variantList.filter((variant) => variant.product_id === selectedProduct?.id),
+    [variantList, selectedProduct?.id]
+  );
+
+  useEffect(() => {
+    const loadImages = async () => {
+      if (!selectedProduct?.id) {
+        setProductImages([]);
+        return;
+      }
+      const { data } = await supabase
+        .from("product_images")
+        .select("id,image_url")
+        .eq("product_id", selectedProduct.id)
+        .order("created_at", { ascending: false });
+      setProductImages(data ?? []);
+    };
+
+    void loadImages();
+  }, [selectedProduct?.id]);
+
+  useEffect(() => {
+    const loadStock = async () => {
+      if (!filteredVariants.length) {
+        setVariantStock({});
+        return;
+      }
+      const ids = filteredVariants.map((variant) => variant.id);
+      const { data } = await supabase
+        .from("inventory_movements")
+        .select("variant_id,direction,quantity")
+        .in("variant_id", ids);
+
+      const nextStock: Record<string, number> = {};
+      (data ?? []).forEach((movement) => {
+        const current = nextStock[movement.variant_id] ?? 0;
+        const delta = movement.direction === "in" ? Number(movement.quantity) : -Number(movement.quantity);
+        nextStock[movement.variant_id] = current + delta;
+      });
+      setVariantStock(nextStock);
+    };
+
+    void loadStock();
+  }, [filteredVariants]);
+
+  const computeCostPerMl = async (productId: string) => {
+    const { data, error } = await supabase
+      .from("vendor_purchases")
+      .select("volume_liter,price_per_liter")
+      .eq("product_id", productId);
+
+    if (error) {
+      throw error;
+    }
+
+    if (!data || data.length === 0) {
+      return null;
+    }
+
+    const totals = data.reduce(
+      (acc, row) => {
+        const volume = Number(row.volume_liter);
+        const price = Number(row.price_per_liter);
+        return {
+          totalVolume: acc.totalVolume + volume,
+          totalCost: acc.totalCost + price * volume
+        };
+      },
+      { totalVolume: 0, totalCost: 0 }
+    );
+
+    if (totals.totalVolume === 0) {
+      return null;
+    }
+
+    return totals.totalCost / totals.totalVolume / 1000;
+  };
 
   const handleCreateProduct = async (values: Record<string, string>) => {
     const { data, error } = await supabase
@@ -49,8 +136,180 @@ export default function ProductsClient({ products, variants, detailFields, nextC
     }
   };
 
+  const handleUpdateProduct = async (productId: string, values: Record<string, string>) => {
+    const { data, error } = await supabase
+      .from("products")
+      .update({
+        name: values.name,
+        sku: values.sku || null,
+        status: values.status || "Active"
+      })
+      .eq("id", productId)
+      .select("id,name,sku,status,created_at")
+      .single();
+
+    if (error) {
+      throw error;
+    }
+
+    if (data) {
+      setProductList((prev) => prev.map((product) => (product.id === productId ? data : product)));
+      setStatusMessage(`${translate(locale, "Action completed successfully.")}`);
+    }
+  };
+
+  const handleDeleteProduct = async (productId: string) => {
+    if (!window.confirm("Delete this product and all variants?")) {
+      return;
+    }
+    const { error } = await supabase.from("products").delete().eq("id", productId);
+    if (error) {
+      setStatusMessage(error.message);
+      return;
+    }
+    const nextProducts = productList.filter((product) => product.id !== productId);
+    setProductList(nextProducts);
+    setVariantList((prev) => prev.filter((variant) => variant.product_id !== productId));
+    if (selectedProductId === productId) {
+      setSelectedProductId(nextProducts[0]?.id ?? null);
+    }
+  };
+
+  const handleCreateVariant = async (values: Record<string, string>) => {
+    if (!selectedProduct?.id) {
+      throw new Error("Select a product first.");
+    }
+    const costPerMl = await computeCostPerMl(selectedProduct.id);
+    const { data, error } = await supabase
+      .from("product_variants")
+      .insert({
+        product_id: selectedProduct.id,
+        bottle_size_ml: Number(values.bottle_size_ml),
+        barcode: values.barcode || null,
+        price: Number(values.price),
+        min_stock: values.min_stock ? Number(values.min_stock) : 0,
+        cost_per_ml: costPerMl
+      })
+      .select("id,product_id,bottle_size_ml,barcode,price,cost_per_ml,min_stock,created_at,product:products(name)")
+      .single();
+
+    if (error) {
+      throw error;
+    }
+
+    if (data) {
+      setVariantList((prev) => [data, ...prev]);
+      setStatusMessage(`${translate(locale, "Action completed successfully.")}`);
+    }
+  };
+
+  const handleUpdateVariant = async (variantId: string, values: Record<string, string>) => {
+    const { data, error } = await supabase
+      .from("product_variants")
+      .update({
+        bottle_size_ml: Number(values.bottle_size_ml),
+        barcode: values.barcode || null,
+        price: Number(values.price),
+        min_stock: values.min_stock ? Number(values.min_stock) : 0
+      })
+      .eq("id", variantId)
+      .select("id,product_id,bottle_size_ml,barcode,price,cost_per_ml,min_stock,created_at,product:products(name)")
+      .single();
+
+    if (error) {
+      throw error;
+    }
+
+    if (data) {
+      setVariantList((prev) => prev.map((variant) => (variant.id === variantId ? data : variant)));
+      setStatusMessage(`${translate(locale, "Action completed successfully.")}`);
+    }
+  };
+
+  const handleDeleteVariant = async (variantId: string) => {
+    if (!window.confirm("Delete this variant?")) {
+      return;
+    }
+    const { error } = await supabase.from("product_variants").delete().eq("id", variantId);
+    if (error) {
+      setStatusMessage(error.message);
+      return;
+    }
+    setVariantList((prev) => prev.filter((variant) => variant.id !== variantId));
+  };
+
+  const handleRecalculateHpp = async (variantId: string) => {
+    if (!selectedProduct?.id) {
+      return;
+    }
+    const costPerMl = await computeCostPerMl(selectedProduct.id);
+    const { data, error } = await supabase
+      .from("product_variants")
+      .update({ cost_per_ml: costPerMl })
+      .eq("id", variantId)
+      .select("id,product_id,bottle_size_ml,barcode,price,cost_per_ml,min_stock,created_at,product:products(name)")
+      .single();
+
+    if (error) {
+      setStatusMessage(error.message);
+      return;
+    }
+
+    if (data) {
+      setVariantList((prev) => prev.map((variant) => (variant.id === variantId ? data : variant)));
+    }
+  };
+
+  const handleAdjustStock = async (variantId: string, values: Record<string, string>) => {
+    const { error } = await supabase.from("inventory_movements").insert({
+      variant_id: variantId,
+      direction: values.direction,
+      quantity: Number(values.quantity),
+      reason: values.reason || null
+    });
+
+    if (error) {
+      throw error;
+    }
+
+    const { data } = await supabase
+      .from("inventory_movements")
+      .select("variant_id,direction,quantity")
+      .eq("variant_id", variantId);
+    const total = (data ?? []).reduce((sum, movement) => {
+      const delta = movement.direction === "in" ? Number(movement.quantity) : -Number(movement.quantity);
+      return sum + delta;
+    }, 0);
+    setVariantStock((prev) => ({ ...prev, [variantId]: total }));
+  };
+
   const handleGenerateBarcode = (productName: string) => {
     setStatusMessage(`${translate(locale, "Action completed successfully.")} (${productName})`);
+  };
+
+  const handleUploadImage = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file || !selectedProduct?.id) {
+      return;
+    }
+    const filePath = `products/${selectedProduct.id}/${Date.now()}-${file.name}`;
+    const { error } = await supabase.storage.from("product-images").upload(filePath, file, {
+      upsert: true
+    });
+    if (error) {
+      setStatusMessage(error.message);
+      return;
+    }
+    const { data: publicData } = supabase.storage.from("product-images").getPublicUrl(filePath);
+    const imageUrl = publicData.publicUrl;
+    const { data } = await supabase
+      .from("product_images")
+      .insert({ product_id: selectedProduct.id, image_url: imageUrl })
+      .select("id,image_url")
+      .single();
+    if (data) {
+      setProductImages((prev) => [data, ...prev]);
+    }
   };
 
   return (
@@ -123,6 +382,34 @@ export default function ProductsClient({ products, variants, detailFields, nextC
                   <Button variant="secondary" onClick={() => setSelectedProductId(product.id)}>
                     {translate(locale, "View details")}
                   </Button>
+                  <QuickAddDialog
+                    title="Edit product"
+                    description="Update details"
+                    triggerLabel="Edit"
+                    submitLabel="Save"
+                    initialValues={{
+                      name: product.name,
+                      sku: product.sku ?? "",
+                      status: product.status ?? "Active"
+                    }}
+                    fields={[
+                      { name: "name", label: "Product name", placeholder: "Product name", required: true },
+                      { name: "sku", label: "SKU", placeholder: "SKU" },
+                      {
+                        name: "status",
+                        label: "Status",
+                        type: "select",
+                        options: [
+                          { label: "Active", value: "Active" },
+                          { label: "Inactive", value: "Inactive" }
+                        ]
+                      }
+                    ]}
+                    onSubmit={(values) => handleUpdateProduct(product.id, values)}
+                  />
+                  <Button variant="ghost" onClick={() => handleDeleteProduct(product.id)}>
+                    Delete
+                  </Button>
                   <Button variant="ghost" onClick={() => handleGenerateBarcode(product.name)}>
                     {translate(locale, "Generate barcode")}
                   </Button>
@@ -154,6 +441,30 @@ export default function ProductsClient({ products, variants, detailFields, nextC
               ? `Viewing details for ${selectedProduct.name}.`
               : translate(locale, "Select a product to see its detail form.")}
           </div>
+          <div className="mt-4 space-y-3">
+            <label className="text-xs font-semibold text-slate-600 dark:text-slate-200">
+              Upload product image
+              <input
+                type="file"
+                accept="image/*"
+                className="mt-2 block w-full text-xs text-slate-500"
+                onChange={handleUploadImage}
+              />
+            </label>
+            <div className="grid gap-3 sm:grid-cols-2">
+              {productImages.length === 0 ? (
+                <div className="rounded-xl border border-slate-200 bg-white p-3 text-xs text-slate-500 dark:border-white/10 dark:bg-white/5 dark:text-slate-300">
+                  No images uploaded yet.
+                </div>
+              ) : (
+                productImages.map((image) => (
+                  <div key={image.id} className="overflow-hidden rounded-xl border border-slate-200 dark:border-white/10">
+                    <img src={image.image_url} alt="Product" className="h-32 w-full object-cover" />
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
           <div className="mt-4 grid gap-4 md:grid-cols-2">
             {detailFields.map((field) => (
               <div
@@ -170,27 +481,101 @@ export default function ProductsClient({ products, variants, detailFields, nextC
           <SectionHeader
             title={translate(locale, "Variant pricing")}
             subtitle={translate(locale, "Set bottle size and margin with realtime HPP updates.")}
+            action={
+              <QuickAddDialog
+                title="Add variant"
+                description="Define size, price, and minimum stock"
+                triggerLabel="Quick add"
+                fields={[
+                  { name: "bottle_size_ml", label: "Bottle size (ml)", type: "number", required: true },
+                  { name: "barcode", label: "Barcode", placeholder: "Barcode" },
+                  { name: "price", label: "Price", type: "number", required: true },
+                  { name: "min_stock", label: "Min", type: "number" }
+                ]}
+                onSubmit={handleCreateVariant}
+              />
+            }
           />
           <div className="mt-4 space-y-3">
-            {variants.length === 0 ? (
+            {filteredVariants.length === 0 ? (
               <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-500 dark:border-white/10 dark:bg-white/5 dark:text-slate-300">
                 {translate(locale, "No variants yet. Add a product variant to define bottle size and pricing.")}
               </div>
             ) : (
-              variants.slice(0, 3).map((variant) => (
+              filteredVariants.map((variant) => (
                 <div
                   key={variant.id}
-                  className="flex items-center justify-between rounded-xl border border-slate-200 bg-white p-4 dark:border-white/10 dark:bg-white/5"
+                  className="rounded-xl border border-slate-200 bg-white p-4 dark:border-white/10 dark:bg-white/5"
                 >
-                  <div>
-                    <p className="text-sm font-semibold text-slate-900 dark:text-white">
-                      {variant.bottle_size_ml} ml bottle
-                    </p>
-                    <p className="text-xs text-slate-400">Product {variant.product?.name ?? "—"}</p>
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-semibold text-slate-900 dark:text-white">
+                        {variant.bottle_size_ml} ml bottle
+                      </p>
+                      <p className="text-xs text-slate-400">Product {variant.product?.name ?? "—"}</p>
+                    </div>
+                    <div className="text-sm font-semibold text-slate-900 dark:text-white">
+                      Rp {Number(variant.price).toLocaleString("id-ID")}
+                    </div>
                   </div>
-                  <p className="text-sm font-semibold text-slate-900 dark:text-white">
-                    Rp {Number(variant.price).toLocaleString("id-ID")}
-                  </p>
+                  <div className="mt-3 grid gap-2 text-xs text-slate-500 dark:text-slate-300 sm:grid-cols-3">
+                    <p>Stock: {variantStock[variant.id] ?? 0}</p>
+                    <p>Min: {variant.min_stock ?? 0}</p>
+                    <p>
+                      HPP:{" "}
+                      {variant.cost_per_ml
+                        ? `Rp ${(Number(variant.cost_per_ml) * Number(variant.bottle_size_ml)).toLocaleString("id-ID")}`
+                        : "Add vendor purchases"}
+                    </p>
+                  </div>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <QuickAddDialog
+                      title="Edit variant"
+                      description="Update size, price, and stock"
+                      triggerLabel="Edit"
+                      submitLabel="Save"
+                      initialValues={{
+                        bottle_size_ml: String(variant.bottle_size_ml),
+                        barcode: variant.barcode ?? "",
+                        price: String(variant.price),
+                        min_stock: String(variant.min_stock ?? 0)
+                      }}
+                      fields={[
+                        { name: "bottle_size_ml", label: "Bottle size (ml)", type: "number", required: true },
+                        { name: "barcode", label: "Barcode", placeholder: "Barcode" },
+                        { name: "price", label: "Price", type: "number", required: true },
+                        { name: "min_stock", label: "Min", type: "number" }
+                      ]}
+                      onSubmit={(values) => handleUpdateVariant(variant.id, values)}
+                    />
+                    <QuickAddDialog
+                      title="Adjust stock"
+                      description="Log inventory movement"
+                      triggerLabel="Adjust stock"
+                      submitLabel="Save"
+                      fields={[
+                        {
+                          name: "direction",
+                          label: "Type",
+                          type: "select",
+                          required: true,
+                          options: [
+                            { label: "Stock in", value: "in" },
+                            { label: "Stock out", value: "out" }
+                          ]
+                        },
+                        { name: "quantity", label: "Value", type: "number", required: true },
+                        { name: "reason", label: "Note", placeholder: "Reason" }
+                      ]}
+                      onSubmit={(values) => handleAdjustStock(variant.id, values)}
+                    />
+                    <Button variant="ghost" onClick={() => handleDeleteVariant(variant.id)}>
+                      Delete
+                    </Button>
+                    <Button variant="secondary" onClick={() => handleRecalculateHpp(variant.id)}>
+                      Refresh HPP
+                    </Button>
+                  </div>
                 </div>
               ))
             )}

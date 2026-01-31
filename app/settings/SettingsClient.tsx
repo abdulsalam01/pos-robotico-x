@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { Button, Card, SectionHeader } from "@/components/ui";
+import QuickAddDialog from "@/components/QuickAddDialog";
 import { supabase } from "@/lib/supabase";
 
 type TestStatus = "idle" | "pending" | "success" | "error";
@@ -49,8 +50,28 @@ export default function SettingsClient() {
     setTestMessage("Connection successful.");
   };
 
-  const handleInviteStaff = () => {
-    setInviteStatus("Invite sent (demo). Follow up in the staff inbox.");
+  const handleInviteStaff = async (values: Record<string, string>) => {
+    const password = `Temp-${Math.random().toString(36).slice(-10)}!`;
+    const { data, error } = await supabase.auth.signUp({
+      email: values.email,
+      password,
+      options: {
+        data: {
+          role: values.role
+        }
+      }
+    });
+
+    if (error) {
+      setInviteStatus(`Error: ${error.message}`);
+      return;
+    }
+
+    if (data.user) {
+      setInviteStatus(
+        `User created: ${data.user.email}. Temporary password: ${password}. Ask the user to reset their password.`
+      );
+    }
   };
 
   return (
@@ -97,11 +118,35 @@ export default function SettingsClient() {
           <p>✅ Admin: full access</p>
         </div>
         <div className="mt-4 flex flex-col gap-3">
-          <Button variant="secondary" onClick={handleInviteStaff}>
-            Invite staff
-          </Button>
+          <QuickAddDialog
+            title="Invite staff"
+            description="Create a staff account with a role"
+            triggerLabel="Invite staff"
+            submitLabel="Create user"
+            fields={[
+              { name: "email", label: "Email", placeholder: "Email", required: true },
+              {
+                name: "role",
+                label: "Role",
+                type: "select",
+                required: true,
+                options: [
+                  { label: "Cashier", value: "cashier" },
+                  { label: "Supervisor", value: "supervisor" },
+                  { label: "Admin", value: "admin" }
+                ]
+              }
+            ]}
+            onSubmit={handleInviteStaff}
+          />
           {inviteStatus ? (
-            <p className="text-xs text-mint-200">{inviteStatus}</p>
+            <p
+              className={`text-xs ${
+                inviteStatus.toLowerCase().includes("error") ? "text-coral-200" : "text-mint-200"
+              }`}
+            >
+              {inviteStatus}
+            </p>
           ) : null}
         </div>
       </Card>
