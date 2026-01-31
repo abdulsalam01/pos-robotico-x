@@ -1,17 +1,16 @@
 import AppShell from "@/components/AppShell";
 import { Badge, Button, Card, SectionHeader, StatCard } from "@/components/ui";
-import { fetchTransactionsWithCursor, fetchVariantsWithCursor } from "@/lib/data";
-
-const kpiData = [
-  { label: "Today Revenue", value: "Rp 12.450.000", change: "+12% vs yesterday", accent: "mint" as const },
-  { label: "Gross Margin", value: "38.4%", change: "+2.1% since last week", accent: "primary" as const },
-  { label: "Orders", value: "142", change: "+18 orders", accent: "primary" as const },
-  { label: "Low Stock", value: "7 items", change: "Need restock", accent: "coral" as const }
-];
+import { fetchTransactionsWithCursor, fetchUiContent, fetchVariantsWithCursor } from "@/lib/data";
 
 export default async function HomePage() {
-  const { data: variants } = await fetchVariantsWithCursor();
-  const { data: transactions } = await fetchTransactionsWithCursor();
+  const [variants, transactions, kpis, salesPulse, quickActions, salesChart] = await Promise.all([
+    fetchVariantsWithCursor().then((response) => response.data),
+    fetchTransactionsWithCursor().then((response) => response.data),
+    fetchUiContent("dashboard", "kpis"),
+    fetchUiContent("dashboard", "sales_pulse"),
+    fetchUiContent("dashboard", "quick_actions"),
+    fetchUiContent("dashboard", "sales_chart")
+  ]);
 
   return (
     <AppShell
@@ -19,8 +18,14 @@ export default async function HomePage() {
       description="Monitor sales, stock health, and CRM performance in one clear workspace."
     >
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        {kpiData.map((stat) => (
-          <StatCard key={stat.label} {...stat} />
+        {kpis.map((stat) => (
+          <StatCard
+            key={stat.id}
+            label={stat.label}
+            value={stat.value ?? "—"}
+            change={stat.note ?? ""}
+            accent={(stat.accent ?? "primary") as "primary" | "mint" | "coral"}
+          />
         ))}
       </section>
 
@@ -32,37 +37,28 @@ export default async function HomePage() {
             action={<Button variant="secondary">Export Insights</Button>}
           />
           <div className="grid gap-4 lg:grid-cols-3">
-            {[
-              { label: "Avg Basket", value: "Rp 175.000", note: "+6%" },
-              { label: "Peak Hour", value: "18:00 - 20:00", note: "Friday" },
-              { label: "Repeat Rate", value: "32%", note: "Monthly" }
-            ].map((item) => (
+            {salesPulse.map((item) => (
               <div key={item.label} className="rounded-2xl border border-white/10 bg-white/5 p-4">
                 <p className="text-xs text-slate-400">{item.label}</p>
-                <p className="mt-2 text-lg font-semibold text-white">{item.value}</p>
-                <p className="mt-1 text-xs text-mint-300">{item.note}</p>
+                <p className="mt-2 text-lg font-semibold text-white">{item.value ?? "—"}</p>
+                <p className="mt-1 text-xs text-mint-300">{item.note ?? ""}</p>
               </div>
             ))}
           </div>
           <div className="rounded-2xl border border-dashed border-white/10 bg-white/5 p-6 text-center text-sm text-slate-300">
-            Sales chart placeholder — connect to Supabase analytics table for realtime line chart.
+            {salesChart[0]?.label ?? "Sales chart placeholder — connect to Supabase analytics table for realtime line chart."}
           </div>
         </Card>
 
         <Card className="space-y-5">
           <SectionHeader title="Quick actions" subtitle="Create fast workflows for staff." />
           <div className="space-y-3">
-            {[
-              "Start new POS transaction",
-              "Restock low items",
-              "Create discount campaign",
-              "Add new customer profile"
-            ].map((action) => (
+            {quickActions.map((action) => (
               <button
-                key={action}
+                key={action.id}
                 className="flex w-full items-center justify-between rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-slate-200 transition hover:bg-white/10"
               >
-                {action}
+                {action.label}
                 <span className="text-xs text-slate-400">→</span>
               </button>
             ))}

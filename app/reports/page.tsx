@@ -1,7 +1,13 @@
 import AppShell from "@/components/AppShell";
 import { Button, Card, SectionHeader } from "@/components/ui";
+import { fetchUiContent } from "@/lib/data";
 
-export default function ReportsPage() {
+export default async function ReportsPage() {
+  const [reportCards, reportSettings] = await Promise.all([
+    fetchUiContent("reports", "report_cards"),
+    fetchUiContent("reports", "settings")
+  ]);
+
   return (
     <AppShell
       title="Reports & PDF Export"
@@ -15,16 +21,9 @@ export default function ReportsPage() {
             action={<Button>Generate PDF</Button>}
           />
           <div className="mt-4 grid gap-3 md:grid-cols-2">
-            {[
-              "Sales summary (daily, weekly, monthly)",
-              "Product profitability & margin",
-              "Inventory valuation",
-              "Vendor purchase history",
-              "Customer lifetime value",
-              "Discount performance"
-            ].map((item) => (
-              <div key={item} className="rounded-xl border border-white/10 bg-white/5 p-4 text-sm text-slate-300">
-                {item}
+            {reportCards.map((item) => (
+              <div key={item.id} className="rounded-xl border border-white/10 bg-white/5 p-4 text-sm text-slate-300">
+                {item.label}
               </div>
             ))}
           </div>
@@ -36,9 +35,9 @@ export default function ReportsPage() {
             subtitle="Customize layout, paper size, and metadata."
           />
           <div className="mt-4 space-y-3 text-sm text-slate-300">
-            <p>✅ A4 / thermal printer friendly.</p>
-            <p>✅ Include barcode list for stock audit.</p>
-            <p>✅ Attach signature and approval notes.</p>
+            {reportSettings.map((item) => (
+              <p key={item.id}>✅ {item.label}</p>
+            ))}
           </div>
           <Button variant="secondary">Save template</Button>
         </Card>

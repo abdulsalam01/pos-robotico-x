@@ -1,7 +1,7 @@
 import Link from "next/link";
 import AppShell from "@/components/AppShell";
 import { Badge, Button, Card, SectionHeader } from "@/components/ui";
-import { fetchDiscountsWithCursor } from "@/lib/data";
+import { fetchDiscountsWithCursor, fetchUiContent } from "@/lib/data";
 
 interface DiscountsPageProps {
   searchParams?: { cursor?: string };
@@ -9,7 +9,11 @@ interface DiscountsPageProps {
 
 export default async function DiscountsPage({ searchParams }: DiscountsPageProps) {
   const cursor = searchParams?.cursor;
-  const { data, nextCursor } = await fetchDiscountsWithCursor(cursor);
+  const [{ data, nextCursor }, rules, previewNotes] = await Promise.all([
+    fetchDiscountsWithCursor(cursor),
+    fetchUiContent("discounts", "rules"),
+    fetchUiContent("discounts", "preview_notes")
+  ]);
 
   return (
     <AppShell
@@ -65,16 +69,9 @@ export default async function DiscountsPage({ searchParams }: DiscountsPageProps
             subtitle="Attach discounts to products, categories, or checkout totals."
           />
           <div className="mt-4 grid gap-3 md:grid-cols-2">
-            {[
-              "Discount type (fixed / %)",
-              "Eligible products",
-              "Minimum purchase",
-              "Expiration date",
-              "Customer segment",
-              "Usage limits"
-            ].map((item) => (
-              <div key={item} className="rounded-xl border border-white/10 bg-white/5 p-4 text-sm text-slate-300">
-                {item}
+            {rules.map((item) => (
+              <div key={item.id} className="rounded-xl border border-white/10 bg-white/5 p-4 text-sm text-slate-300">
+                {item.label}
               </div>
             ))}
           </div>
@@ -86,9 +83,9 @@ export default async function DiscountsPage({ searchParams }: DiscountsPageProps
             subtitle="Simulate discounts before launching."
           />
           <div className="mt-4 space-y-3 text-sm text-slate-300">
-            <p>✅ Automatic calculation on checkout.</p>
-            <p>✅ Combine with member pricing.</p>
-            <p>✅ Real-time analytics in dashboard.</p>
+            {previewNotes.map((item) => (
+              <p key={item.id}>✅ {item.label}</p>
+            ))}
           </div>
           <Button variant="secondary">Run simulation</Button>
         </Card>
