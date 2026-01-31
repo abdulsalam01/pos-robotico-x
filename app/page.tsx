@@ -16,6 +16,12 @@ export default async function HomePage() {
     fetchTransactionsWithCursor().then((response) => response.data),
     fetchUiContent("dashboard", "quick_actions")
   ]);
+  const quickActionRoutes: Record<string, string> = {
+    "Start new POS transaction": "/pos",
+    "Restock low items": "/inventory",
+    "Create discount campaign": "/discounts",
+    "Add new customer profile": "/customers"
+  };
 
   const today = new Date();
   const start = new Date(today);
@@ -195,7 +201,13 @@ export default async function HomePage() {
             title={translate(locale, "Quick actions")}
             subtitle={translate(locale, "Create fast workflows for staff.")}
           />
-          <ActionList actions={quickActions.map((action) => ({ id: action.id, label: action.label }))} />
+          <ActionList
+            actions={quickActions.map((action) => ({
+              id: action.id,
+              label: action.label,
+              href: action.href ?? quickActionRoutes[action.label] ?? null
+            }))}
+          />
         </Card>
       </section>
 

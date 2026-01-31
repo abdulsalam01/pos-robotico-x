@@ -72,6 +72,14 @@ create table customers (
   created_at timestamptz default now()
 );
 
+create table loyalty_tiers (
+  id uuid primary key default gen_random_uuid(),
+  name text not null,
+  min_points integer,
+  reward text,
+  created_at timestamptz default now()
+);
+
 create table discounts (
   id uuid primary key default gen_random_uuid(),
   name text not null,
@@ -130,6 +138,7 @@ create index vendor_purchases_created_at_idx on vendor_purchases(purchased_at de
 create index inventory_movements_variant_id_idx on inventory_movements(variant_id);
 create index inventory_movements_created_at_idx on inventory_movements(created_at desc);
 create index customers_created_at_idx on customers(created_at desc);
+create index loyalty_tiers_min_points_idx on loyalty_tiers(min_points);
 create index discounts_created_at_idx on discounts(created_at desc);
 create index products_search_idx on products using gin(search_vector);
 create index variants_barcode_idx on product_variants(barcode);

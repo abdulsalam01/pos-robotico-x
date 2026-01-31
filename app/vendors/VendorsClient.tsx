@@ -289,6 +289,10 @@ export default function VendorsClient({ initialData, nextCursor }: VendorsClient
             />
           }
         />
+        <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-xs text-slate-500 dark:border-white/10 dark:bg-white/5 dark:text-slate-300">
+          Use Log purchase for one-off vendor invoices. For multiple items in the same delivery, use Purchase builder
+          below so everything is saved together.
+        </div>
         {purchases.length === 0 ? (
           <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-xs text-slate-500 dark:border-white/10 dark:bg-white/5 dark:text-slate-300">
             No purchase data yet.
