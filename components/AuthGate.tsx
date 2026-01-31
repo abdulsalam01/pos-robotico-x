@@ -36,7 +36,7 @@ export default function AuthGate({ children }: AuthGateProps) {
   }, [pathname, router]);
 
   if (!ready && pathname !== "/login") {
-    return <div className="min-h-screen bg-slate-950" />;
+    return <div className="min-h-screen bg-slate-50 dark:bg-slate-950" />;
   }
 
   return <>{children}</>;

@@ -1,5 +1,5 @@
 import AppShell from "@/components/AppShell";
-import { Badge, Button, Card, SectionHeader } from "@/components/ui";
+import PosClient from "@/app/pos/PosClient";
 import { fetchProductsWithCursor, fetchUiContent } from "@/lib/data";
 
 export default async function PosPage() {
@@ -15,123 +15,12 @@ export default async function PosPage() {
       title="Point of Sale"
       description="Process fast checkout with barcode, discounts, and automatic change."
     >
-      <div className="grid gap-6 xl:grid-cols-[1.6fr,1fr]">
-        <div className="space-y-6">
-          <Card>
-            <SectionHeader
-              title="Scan & add products"
-              subtitle="Barcode ready. Use quick search for products and variants."
-              action={<Button>Open scanner</Button>}
-            />
-            <div className="mt-4 rounded-2xl border border-white/10 bg-white/5 p-4">
-              <input
-                className="w-full rounded-xl border border-white/10 bg-transparent px-4 py-3 text-sm text-white placeholder:text-slate-500 focus:outline-none"
-                placeholder="Search perfume name or barcode"
-              />
-            </div>
-            <div className="mt-5 grid gap-4 md:grid-cols-3">
-              {products.length === 0 ? (
-                <div className="rounded-2xl border border-white/10 bg-white/5 p-6 text-sm text-slate-300">
-                  No products yet. Add products to start selling.
-                </div>
-              ) : (
-                products.map((product) => (
-                  <div key={product.id} className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <p className="text-sm font-semibold text-white">{product.name}</p>
-                        <p className="text-xs text-slate-400">SKU {product.sku ?? "—"}</p>
-                      </div>
-                      <Badge label={product.status ?? "Active"} tone="success" />
-                    </div>
-                    <p className="mt-4 text-xs text-slate-400">Pricing from variants table</p>
-                    <button className="mt-4 w-full rounded-xl bg-white/10 px-3 py-2 text-xs font-semibold text-white transition hover:bg-white/20">
-                      Add to cart
-                    </button>
-                  </div>
-                ))
-              )}
-            </div>
-          </Card>
-
-          <Card>
-          <SectionHeader
-            title="Customer & CRM"
-            subtitle="Optional fields help create loyalty campaigns and targeted discounts."
-          />
-          <div className="mt-4 grid gap-4 md:grid-cols-2">
-            {customerFields.map((field) => (
-              <input
-                key={field.id}
-                className="rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-slate-500"
-                placeholder={field.label}
-              />
-            ))}
-          </div>
-          <div className="mt-4 flex flex-wrap gap-3">
-            <Button variant="secondary">Apply member discount</Button>
-            <Button variant="ghost">Save for next visit</Button>
-            </div>
-          </Card>
-        </div>
-
-        <Card className="space-y-6">
-          <SectionHeader title="Checkout summary" subtitle="Confirm items, payment, and change." />
-          <div className="space-y-4">
-            <div className="rounded-xl border border-white/10 bg-white/5 p-4 text-sm text-slate-300">
-              No items yet. Add products from the left to build the cart.
-            </div>
-          </div>
-          <div className="space-y-3 border-t border-white/10 pt-4 text-sm">
-            {summaryLines.map((line) => {
-              const valueClass =
-                line.accent === "mint"
-                  ? "text-mint-300"
-                  : line.accent === "strong"
-                  ? "text-white text-base font-semibold"
-                  : "text-white";
-              const labelClass =
-                line.accent === "strong" ? "text-base font-semibold" : "text-slate-400";
-              return (
-                <div
-                  key={line.id}
-                  className={`flex items-center justify-between ${line.accent === "strong" ? "text-base font-semibold" : ""}`}
-                >
-                  <span className={labelClass}>{line.label}</span>
-                  <span className={valueClass}>{line.value ?? "Rp 0"}</span>
-                </div>
-              );
-            })}
-          </div>
-          <div className="space-y-3">
-            <SectionHeader title="Payment" subtitle="Choose method and input cash received." />
-            <div className="grid gap-3 sm:grid-cols-3">
-              {paymentMethods.map((method) => (
-                <button
-                  key={method.id}
-                  className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-semibold text-slate-200 transition hover:bg-white/10"
-                >
-                  {method.label}
-                </button>
-              ))}
-            </div>
-            <div className="grid gap-3 sm:grid-cols-2">
-              <input
-                className="rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-slate-500"
-                placeholder="Cash received"
-              />
-              <input
-                className="rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-slate-500"
-                placeholder="Change returned"
-              />
-            </div>
-          </div>
-          <div className="flex flex-col gap-3">
-            <Button>Complete transaction</Button>
-            <Button variant="secondary">Save draft</Button>
-          </div>
-        </Card>
-      </div>
+      <PosClient
+        products={products}
+        customerFields={customerFields}
+        paymentMethods={paymentMethods}
+        summaryLines={summaryLines}
+      />
     </AppShell>
   );
 }

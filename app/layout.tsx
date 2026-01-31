@@ -1,6 +1,7 @@
 import "./globals.css";
 import type { Metadata } from "next";
 import AuthGate from "@/components/AuthGate";
+import { ThemeProvider } from "@/components/ThemeProvider";
 
 export const metadata: Metadata = {
   title: "Parfume POS",
@@ -11,7 +12,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en">
       <body>
-        <AuthGate>{children}</AuthGate>
+        <ThemeProvider>
+          <AuthGate>{children}</AuthGate>
+        </ThemeProvider>
       </body>
     </html>
   );
