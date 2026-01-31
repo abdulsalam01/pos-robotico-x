@@ -15,10 +15,18 @@ create table product_variants (
   id uuid primary key default gen_random_uuid(),
   product_id uuid references products(id) on delete cascade,
   bottle_size_ml numeric not null,
+  unit_label text default 'ml',
   barcode text unique,
   price numeric not null,
   cost_per_ml numeric,
   min_stock integer default 0,
+  created_at timestamptz default now()
+);
+
+create table units (
+  id uuid primary key default gen_random_uuid(),
+  label text not null,
+  symbol text,
   created_at timestamptz default now()
 );
 
@@ -116,6 +124,7 @@ create index products_created_at_idx on products(created_at desc);
 create index products_status_idx on products(status);
 create index product_variants_product_id_idx on product_variants(product_id);
 create index product_variants_created_at_idx on product_variants(created_at desc);
+create index units_label_idx on units(label);
 create index vendor_purchases_vendor_id_idx on vendor_purchases(vendor_id);
 create index vendor_purchases_created_at_idx on vendor_purchases(purchased_at desc);
 create index inventory_movements_variant_id_idx on inventory_movements(variant_id);

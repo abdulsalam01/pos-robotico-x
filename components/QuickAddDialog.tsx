@@ -10,7 +10,7 @@ export type QuickAddField = {
   name: string;
   label: string;
   placeholder?: string;
-  type?: "text" | "number" | "date" | "select";
+  type?: "text" | "number" | "date" | "select" | "currency";
   options?: { label: string; value: string }[];
   required?: boolean;
 };
@@ -21,6 +21,7 @@ interface QuickAddDialogProps {
   triggerLabel: string;
   submitLabel?: string;
   fields: QuickAddField[];
+  initialValues?: Record<string, string>;
   onSubmit: (values: Record<string, string>) => Promise<void>;
 }
 
@@ -30,6 +31,7 @@ export default function QuickAddDialog({
   triggerLabel,
   submitLabel,
   fields,
+  initialValues,
   onSubmit
 }: QuickAddDialogProps) {
   const { locale } = useLanguage();
@@ -40,6 +42,19 @@ export default function QuickAddDialog({
     fields.reduce((acc, field) => ({ ...acc, [field.name]: "" }), {})
   );
 
+  const formatIdr = (value: string) => {
+    if (!value) {
+      return "";
+    }
+    const numericValue = Number(value);
+    if (Number.isNaN(numericValue)) {
+      return "";
+    }
+    return new Intl.NumberFormat("id-ID").format(numericValue);
+  };
+
+  const parseIdr = (value: string) => value.replace(/[^\d]/g, "");
+
   const handleChange = (name: string, value: string) => {
     setValues((prev) => ({ ...prev, [name]: value }));
   };
@@ -47,6 +62,18 @@ export default function QuickAddDialog({
   const handleClose = () => {
     setOpen(false);
     setError(null);
+  };
+
+  const handleOpen = () => {
+    const seeded = fields.reduce(
+      (acc, field) => ({
+        ...acc,
+        [field.name]: initialValues?.[field.name] ?? ""
+      }),
+      {}
+    );
+    setValues(seeded);
+    setOpen(true);
   };
 
   const handleSubmit = async (event: FormEvent) => {
@@ -66,7 +93,7 @@ export default function QuickAddDialog({
 
   return (
     <>
-      <Button onClick={() => setOpen(true)}>{translate(locale, triggerLabel)}</Button>
+      <Button onClick={handleOpen}>{translate(locale, triggerLabel)}</Button>
       {open ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4">
           <div className="w-full max-w-lg rounded-2xl border border-slate-200 bg-white p-6 shadow-soft dark:border-white/10 dark:bg-slate-900">
@@ -105,6 +132,15 @@ export default function QuickAddDialog({
                         </option>
                       ))}
                     </select>
+                  ) : field.type === "currency" ? (
+                    <input
+                      inputMode="numeric"
+                      className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 dark:border-white/10 dark:bg-white/5 dark:text-white"
+                      placeholder={field.placeholder ? translate(locale, field.placeholder) : undefined}
+                      value={formatIdr(values[field.name])}
+                      onChange={(event) => handleChange(field.name, parseIdr(event.target.value))}
+                      required={field.required}
+                    />
                   ) : (
                     <input
                       type={field.type ?? "text"}

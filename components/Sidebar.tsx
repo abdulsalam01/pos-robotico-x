@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { BarChart3, Barcode, Boxes, Gem, Package, Receipt, Settings, ShoppingBag, Users } from "lucide-react";
 import { fetchUiContent, fetchVariantMinimumCount } from "@/lib/data";
-import { getServerLocale, translate } from "@/lib/i18n";
+import { getServerLocale } from "@/lib/i18n.server";
+import { translate } from "@/lib/i18n";
 
 const iconMap = {
   dashboard: BarChart3,
@@ -16,7 +17,7 @@ const iconMap = {
 };
 
 export default async function Sidebar() {
-  const locale = getServerLocale();
+  const locale = await getServerLocale();
   const [navItems, alertItems, lowStockCount] = await Promise.all([
     fetchUiContent("global", "sidebar_nav"),
     fetchUiContent("global", "sidebar_alert"),

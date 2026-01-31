@@ -1,5 +1,3 @@
-import { cookies } from "next/headers";
-
 export type Locale = "en" | "id";
 
 export const DEFAULT_LOCALE: Locale = "en";
@@ -48,7 +46,6 @@ const TRANSLATIONS: Record<Locale, Record<string, string>> = {
     "Scanner ready. Focus the cursor here and scan the barcode.":
       "Pemindai siap. Fokuskan kursor di sini dan pindai barcode.",
     "Done scanning": "Selesai memindai",
-    "Cancel": "Batal",
     "Catalog": "Katalog",
     "Each product supports multiple bottle sizes, pricing tiers, and barcode generation.":
       "Setiap produk mendukung beberapa ukuran botol, tingkatan harga, dan pembuatan barcode.",
@@ -112,7 +109,6 @@ const TRANSLATIONS: Record<Locale, Record<string, string>> = {
     "Expired": "Kedaluwarsa",
     "Inventory": "Inventori",
     "Sync stock": "Sinkronkan stok",
-    "Manage notification rules": "Kelola aturan notifikasi",
     "Log out": "Keluar",
     "Light mode": "Mode terang",
     "Dark mode": "Mode gelap",
@@ -121,7 +117,6 @@ const TRANSLATIONS: Record<Locale, Record<string, string>> = {
     "Indonesian": "Indonesia",
     "Quick add": "Tambah cepat",
     "Save": "Simpan",
-    "Cancel": "Batal",
     "Status": "Status",
     "Active": "Aktif",
     "Type": "Tipe",
@@ -143,6 +138,9 @@ const TRANSLATIONS: Record<Locale, Record<string, string>> = {
     "Monitor sales, stock health, and CRM performance in one clear workspace.":
       "Pantau penjualan, kesehatan stok, dan kinerja CRM dalam satu ruang kerja.",
     "Sales pulse": "Denyut penjualan",
+    "Revenue": "Pendapatan",
+    "Average basket": "Rata-rata keranjang",
+    "Today": "Hari ini",
     "Revenue trend, average basket, and peak hours at a glance.":
       "Tren pendapatan, rata-rata keranjang, dan jam puncak sekilas.",
     "Export insights": "Ekspor wawasan",
@@ -196,7 +194,6 @@ const TRANSLATIONS: Record<Locale, Record<string, string>> = {
     "Barcode": "Barcode",
     "Realtime alerts": "Peringatan real-time",
     "Notify staff when stock hits minimum.": "Beri tahu staf saat stok mencapai minimum.",
-    "Manage notification rules": "Kelola aturan notifikasi",
     "Sign in to your workspace": "Masuk ke ruang kerja Anda",
     "This POS is private. Only admin-created users can access the system.":
       "POS ini bersifat privat. Hanya pengguna yang dibuat admin yang bisa mengakses sistem.",
@@ -210,12 +207,4 @@ const TRANSLATIONS: Record<Locale, Record<string, string>> = {
 
 export function translate(locale: Locale, value: string): string {
   return TRANSLATIONS[locale]?.[value] ?? value;
-}
-
-export function getServerLocale(): Locale {
-  const stored = cookies().get("locale")?.value;
-  if (stored === "id" || stored === "en") {
-    return stored;
-  }
-  return DEFAULT_LOCALE;
 }

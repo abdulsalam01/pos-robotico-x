@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Badge, Card, SectionHeader } from "@/components/ui";
+import { Badge, Button, Card, SectionHeader } from "@/components/ui";
 import QuickAddDialog from "@/components/QuickAddDialog";
 import { useLanguage } from "@/components/LanguageProvider";
 import { translate } from "@/lib/i18n";
@@ -36,6 +36,38 @@ export default function CustomersClient({ initialData, nextCursor }: CustomersCl
     if (data) {
       setCustomers((prev) => [data, ...prev]);
     }
+  };
+
+  const handleUpdateCustomer = async (customerId: string, values: Record<string, string>) => {
+    const { data, error } = await supabase
+      .from("customers")
+      .update({
+        name: values.name || null,
+        phone: values.phone || null,
+        email: values.email || null
+      })
+      .eq("id", customerId)
+      .select("id,name,phone,email,created_at")
+      .single();
+
+    if (error) {
+      throw error;
+    }
+
+    if (data) {
+      setCustomers((prev) => prev.map((customer) => (customer.id === customerId ? data : customer)));
+    }
+  };
+
+  const handleDeleteCustomer = async (customerId: string) => {
+    if (!window.confirm("Delete this customer?")) {
+      return;
+    }
+    const { error } = await supabase.from("customers").delete().eq("id", customerId);
+    if (error) {
+      return;
+    }
+    setCustomers((prev) => prev.filter((customer) => customer.id !== customerId));
   };
 
   return (
@@ -76,7 +108,29 @@ export default function CustomersClient({ initialData, nextCursor }: CustomersCl
                   {customer.phone ?? customer.email ?? translate(locale, "No contact set")}
                 </p>
               </div>
-              <Badge label="CRM" tone="info" />
+              <div className="flex flex-wrap items-center gap-2">
+                <Badge label="CRM" tone="info" />
+                <QuickAddDialog
+                  title="Edit customer"
+                  description="Update customer profile"
+                  triggerLabel="Edit"
+                  submitLabel="Save"
+                  initialValues={{
+                    name: customer.name ?? "",
+                    phone: customer.phone ?? "",
+                    email: customer.email ?? ""
+                  }}
+                  fields={[
+                    { name: "name", label: "Customer name", placeholder: "Customer name", required: true },
+                    { name: "phone", label: "Phone", placeholder: "Phone" },
+                    { name: "email", label: "Email", placeholder: "Email" }
+                  ]}
+                  onSubmit={(values) => handleUpdateCustomer(customer.id, values)}
+                />
+                <Button variant="ghost" onClick={() => handleDeleteCustomer(customer.id)}>
+                  Delete
+                </Button>
+              </div>
             </div>
           ))
         )}

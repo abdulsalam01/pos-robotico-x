@@ -1,7 +1,9 @@
-import { Bell, Search } from "lucide-react";
+import { Search } from "lucide-react";
 import { fetchUiContent } from "@/lib/data";
 import UserMenu from "@/components/UserMenu";
-import { getServerLocale, translate } from "@/lib/i18n";
+import NotificationsMenu from "@/components/NotificationsMenu";
+import { getServerLocale } from "@/lib/i18n.server";
+import { translate } from "@/lib/i18n";
 
 interface TopbarProps {
   title: string;
@@ -9,7 +11,7 @@ interface TopbarProps {
 }
 
 export default async function Topbar({ title, description }: TopbarProps) {
-  const locale = getServerLocale();
+  const locale = await getServerLocale();
   const [metaItems, searchItems] = await Promise.all([
     fetchUiContent("global", "topbar_meta"),
     fetchUiContent("global", "topbar_search")
@@ -37,9 +39,7 @@ export default async function Topbar({ title, description }: TopbarProps) {
               placeholder={searchPlaceholder}
             />
           </div>
-          <button className="flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 transition hover:bg-slate-100 dark:border-white/10 dark:bg-white/5 dark:text-slate-300 dark:hover:bg-white/10">
-            <Bell className="h-4 w-4" />
-          </button>
+          <NotificationsMenu />
           <UserMenu />
         </div>
       </div>

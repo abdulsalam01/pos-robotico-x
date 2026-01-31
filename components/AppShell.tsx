@@ -1,7 +1,8 @@
 import { ReactNode } from "react";
 import Sidebar from "@/components/Sidebar";
 import Topbar from "@/components/Topbar";
-import { getServerLocale, translate } from "@/lib/i18n";
+import { getServerLocale } from "@/lib/i18n.server";
+import { translate } from "@/lib/i18n";
 
 interface AppShellProps {
   title: string;
@@ -9,8 +10,8 @@ interface AppShellProps {
   children: ReactNode;
 }
 
-export default function AppShell({ title, description, children }: AppShellProps) {
-  const locale = getServerLocale();
+export default async function AppShell({ title, description, children }: AppShellProps) {
+  const locale = await getServerLocale();
   const translatedTitle = translate(locale, title);
   const translatedDescription = description ? translate(locale, description) : undefined;
 
