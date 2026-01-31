@@ -1,13 +1,16 @@
+import Link from "next/link";
 import AppShell from "@/components/AppShell";
 import { Button, Card, SectionHeader } from "@/components/ui";
+import { fetchVendorsWithCursor } from "@/lib/data";
 
-const vendors = [
-  { name: "Aroma Prima", volume: "25 L", lastPrice: "Rp 2.400.000 / L", trend: "-3%" },
-  { name: "Fragrance Lab", volume: "18 L", lastPrice: "Rp 2.550.000 / L", trend: "+2%" },
-  { name: "Scentify Co.", volume: "30 L", lastPrice: "Rp 2.320.000 / L", trend: "-1%" }
-];
+interface VendorsPageProps {
+  searchParams?: { cursor?: string };
+}
 
-export default function VendorsPage() {
+export default async function VendorsPage({ searchParams }: VendorsPageProps) {
+  const cursor = searchParams?.cursor;
+  const { data, nextCursor } = await fetchVendorsWithCursor(cursor);
+
   return (
     <AppShell
       title="Vendor & HPP Tracking"
@@ -21,16 +24,34 @@ export default function VendorsPage() {
             action={<Button>Add vendor</Button>}
           />
           <div className="mt-4 space-y-3">
-            {vendors.map((vendor) => (
-              <div key={vendor.name} className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-white/10 bg-white/5 p-4">
-                <div>
-                  <p className="text-sm font-semibold text-white">{vendor.name}</p>
-                  <p className="text-xs text-slate-400">Monthly volume: {vendor.volume}</p>
-                </div>
-                <div className="text-sm text-white">{vendor.lastPrice}</div>
-                <div className="text-xs text-mint-300">Price trend {vendor.trend}</div>
+            {data.length === 0 ? (
+              <div className="rounded-2xl border border-white/10 bg-white/5 p-6 text-sm text-slate-300">
+                No vendors yet. Add suppliers to calculate HPP automatically.
               </div>
-            ))}
+            ) : (
+              data.map((vendor) => (
+                <div
+                  key={vendor.id}
+                  className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-white/10 bg-white/5 p-4"
+                >
+                  <div>
+                    <p className="text-sm font-semibold text-white">{vendor.name}</p>
+                    <p className="text-xs text-slate-400">{vendor.contact ?? "No contact yet"}</p>
+                  </div>
+                  <div className="text-xs text-mint-300">Active supplier</div>
+                </div>
+              ))
+            )}
+          </div>
+          <div className="mt-6 flex justify-end">
+            {nextCursor ? (
+              <Link
+                href={{ pathname: "/vendors", query: { cursor: nextCursor } }}
+                className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/10"
+              >
+                Next page
+              </Link>
+            ) : null}
           </div>
         </Card>
 
@@ -45,7 +66,7 @@ export default function VendorsPage() {
             <p>✅ Gross margin updated in POS & reports.</p>
           </div>
           <div className="mt-4 rounded-xl border border-white/10 bg-white/5 p-4 text-sm text-slate-300">
-            Example: Amber Noir 1L from Aroma Prima at Rp 2.400.000 + 0.5L from Scentify at Rp 2.320.000 → HPP 1ml = Rp 2.373
+            Example: blend vendor purchase prices to keep weighted cost per ml updated in POS.
           </div>
         </Card>
       </div>

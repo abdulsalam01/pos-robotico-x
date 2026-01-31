@@ -1,7 +1,7 @@
 import Link from "next/link";
 import AppShell from "@/components/AppShell";
 import { Badge, Button, Card, SectionHeader } from "@/components/ui";
-import { fetchProductsWithCursor } from "@/lib/data";
+import { fetchProductsWithCursor, fetchVariantsWithCursor } from "@/lib/data";
 
 interface ProductsPageProps {
   searchParams?: { cursor?: string };
@@ -10,6 +10,7 @@ interface ProductsPageProps {
 export default async function ProductsPage({ searchParams }: ProductsPageProps) {
   const cursor = searchParams?.cursor;
   const { data, nextCursor } = await fetchProductsWithCursor(cursor);
+  const { data: variants } = await fetchVariantsWithCursor();
 
   return (
     <AppShell
@@ -90,19 +91,26 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
             subtitle="Set bottle size and margin with realtime HPP updates."
           />
           <div className="mt-4 space-y-3">
-            {[
-              { size: "3ml", price: "Rp 45.000", margin: "58%" },
-              { size: "5ml", price: "Rp 75.000", margin: "62%" },
-              { size: "10ml", price: "Rp 120.000", margin: "65%" }
-            ].map((variant) => (
-              <div key={variant.size} className="flex items-center justify-between rounded-xl border border-white/10 bg-white/5 p-4">
-                <div>
-                  <p className="text-sm font-semibold text-white">{variant.size} bottle</p>
-                  <p className="text-xs text-slate-400">Margin {variant.margin}</p>
-                </div>
-                <p className="text-sm font-semibold text-white">{variant.price}</p>
+            {variants.length === 0 ? (
+              <div className="rounded-xl border border-white/10 bg-white/5 p-4 text-sm text-slate-300">
+                No variants yet. Add a product variant to define bottle size and pricing.
               </div>
-            ))}
+            ) : (
+              variants.slice(0, 3).map((variant) => (
+                <div
+                  key={variant.id}
+                  className="flex items-center justify-between rounded-xl border border-white/10 bg-white/5 p-4"
+                >
+                  <div>
+                    <p className="text-sm font-semibold text-white">{variant.bottle_size_ml} ml bottle</p>
+                    <p className="text-xs text-slate-400">Product {variant.product?.name ?? "—"}</p>
+                  </div>
+                  <p className="text-sm font-semibold text-white">
+                    Rp {Number(variant.price).toLocaleString("id-ID")}
+                  </p>
+                </div>
+              ))
+            )}
           </div>
         </Card>
       </section>

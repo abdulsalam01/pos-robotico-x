@@ -99,6 +99,16 @@ create table transaction_items (
 );
 
 create index products_created_at_idx on products(created_at desc);
+create index products_status_idx on products(status);
+create index product_variants_product_id_idx on product_variants(product_id);
+create index product_variants_created_at_idx on product_variants(created_at desc);
+create index vendor_purchases_vendor_id_idx on vendor_purchases(vendor_id);
+create index vendor_purchases_created_at_idx on vendor_purchases(purchased_at desc);
+create index inventory_movements_variant_id_idx on inventory_movements(variant_id);
+create index inventory_movements_created_at_idx on inventory_movements(created_at desc);
+create index customers_created_at_idx on customers(created_at desc);
 create index discounts_created_at_idx on discounts(created_at desc);
 create index products_search_idx on products using gin(search_vector);
 create index variants_barcode_idx on product_variants(barcode);
+create index transactions_created_at_idx on transactions(created_at desc);
+create index transaction_items_transaction_id_idx on transaction_items(transaction_id);

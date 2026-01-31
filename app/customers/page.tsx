@@ -1,13 +1,16 @@
+import Link from "next/link";
 import AppShell from "@/components/AppShell";
 import { Badge, Button, Card, SectionHeader } from "@/components/ui";
+import { fetchCustomersWithCursor } from "@/lib/data";
 
-const customers = [
-  { name: "Sari Rahman", visits: 6, lastVisit: "2 days ago", segment: "VIP" },
-  { name: "Andi Wibowo", visits: 3, lastVisit: "1 week ago", segment: "Regular" },
-  { name: "Walk-in", visits: 1, lastVisit: "Today", segment: "Guest" }
-];
+interface CustomersPageProps {
+  searchParams?: { cursor?: string };
+}
 
-export default function CustomersPage() {
+export default async function CustomersPage({ searchParams }: CustomersPageProps) {
+  const cursor = searchParams?.cursor;
+  const { data, nextCursor } = await fetchCustomersWithCursor(cursor);
+
   return (
     <AppShell
       title="Customers & CRM"
@@ -21,16 +24,34 @@ export default function CustomersPage() {
             action={<Button>Add customer</Button>}
           />
           <div className="mt-4 space-y-3">
-            {customers.map((customer) => (
-              <div key={customer.name} className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-white/10 bg-white/5 p-4">
-                <div>
-                  <p className="text-sm font-semibold text-white">{customer.name}</p>
-                  <p className="text-xs text-slate-400">Last visit: {customer.lastVisit}</p>
-                </div>
-                <div className="text-sm text-slate-300">{customer.visits} visits</div>
-                <Badge label={customer.segment} tone={customer.segment === "VIP" ? "success" : "info"} />
+            {data.length === 0 ? (
+              <div className="rounded-2xl border border-white/10 bg-white/5 p-6 text-sm text-slate-300">
+                No customers yet. Add optional customer profiles to enable CRM.
               </div>
-            ))}
+            ) : (
+              data.map((customer) => (
+                <div
+                  key={customer.id}
+                  className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-white/10 bg-white/5 p-4"
+                >
+                  <div>
+                    <p className="text-sm font-semibold text-white">{customer.name ?? "Unnamed customer"}</p>
+                    <p className="text-xs text-slate-400">{customer.phone ?? customer.email ?? "No contact set"}</p>
+                  </div>
+                  <Badge label="CRM" tone="info" />
+                </div>
+              ))
+            )}
+          </div>
+          <div className="mt-6 flex justify-end">
+            {nextCursor ? (
+              <Link
+                href={{ pathname: "/customers", query: { cursor: nextCursor } }}
+                className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/10"
+              >
+                Next page
+              </Link>
+            ) : null}
           </div>
         </Card>
 

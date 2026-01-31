@@ -2,23 +2,6 @@ import AppShell from "@/components/AppShell";
 import { Badge, Button, Card, SectionHeader } from "@/components/ui";
 import { fetchProductsWithCursor } from "@/lib/data";
 
-const cartItems = [
-  {
-    name: "Amber Noir",
-    variant: "10ml Bottle",
-    qty: 2,
-    price: "Rp 120.000",
-    total: "Rp 240.000"
-  },
-  {
-    name: "Velvet Rose",
-    variant: "5ml Bottle",
-    qty: 1,
-    price: "Rp 75.000",
-    total: "Rp 75.000"
-  }
-];
-
 export default async function PosPage() {
   const { data: products } = await fetchProductsWithCursor();
 
@@ -95,30 +78,18 @@ export default async function PosPage() {
         <Card className="space-y-6">
           <SectionHeader title="Checkout summary" subtitle="Confirm items, payment, and change." />
           <div className="space-y-4">
-            {cartItems.map((item) => (
-              <div key={item.name} className="rounded-xl border border-white/10 bg-white/5 p-4">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <p className="text-sm font-semibold text-white">{item.name}</p>
-                    <p className="text-xs text-slate-400">{item.variant}</p>
-                  </div>
-                  <div className="text-xs text-slate-400">{item.qty}x</div>
-                </div>
-                <div className="mt-2 flex items-center justify-between text-sm">
-                  <span className="text-slate-400">{item.price}</span>
-                  <span className="font-semibold text-white">{item.total}</span>
-                </div>
-              </div>
-            ))}
+            <div className="rounded-xl border border-white/10 bg-white/5 p-4 text-sm text-slate-300">
+              No items yet. Add products from the left to build the cart.
+            </div>
           </div>
           <div className="space-y-3 border-t border-white/10 pt-4 text-sm">
             <div className="flex items-center justify-between">
               <span className="text-slate-400">Subtotal</span>
-              <span className="text-white">Rp 315.000</span>
+              <span className="text-white">Rp 0</span>
             </div>
             <div className="flex items-center justify-between">
               <span className="text-slate-400">Discount (Member 10%)</span>
-              <span className="text-mint-300">- Rp 31.500</span>
+              <span className="text-mint-300">Rp 0</span>
             </div>
             <div className="flex items-center justify-between">
               <span className="text-slate-400">Tax</span>
@@ -126,7 +97,7 @@ export default async function PosPage() {
             </div>
             <div className="flex items-center justify-between text-base font-semibold">
               <span>Total</span>
-              <span>Rp 283.500</span>
+              <span>Rp 0</span>
             </div>
           </div>
           <div className="space-y-3">

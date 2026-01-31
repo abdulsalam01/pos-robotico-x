@@ -1,5 +1,6 @@
 import AppShell from "@/components/AppShell";
 import { Badge, Button, Card, SectionHeader, StatCard } from "@/components/ui";
+import { fetchTransactionsWithCursor, fetchVariantsWithCursor } from "@/lib/data";
 
 const kpiData = [
   { label: "Today Revenue", value: "Rp 12.450.000", change: "+12% vs yesterday", accent: "mint" as const },
@@ -8,19 +9,10 @@ const kpiData = [
   { label: "Low Stock", value: "7 items", change: "Need restock", accent: "coral" as const }
 ];
 
-const lowStockItems = [
-  { name: "Amber Noir", variant: "10ml Bottle", stock: "6", min: "12" },
-  { name: "Velvet Rose", variant: "30ml Bottle", stock: "9", min: "20" },
-  { name: "Citrus Muse", variant: "5ml Bottle", stock: "4", min: "10" }
-];
+export default async function HomePage() {
+  const { data: variants } = await fetchVariantsWithCursor();
+  const { data: transactions } = await fetchTransactionsWithCursor();
 
-const transactions = [
-  { id: "INV-2034", customer: "Walk-in", items: 3, payment: "QRIS", total: "Rp 480.000" },
-  { id: "INV-2033", customer: "Sari R.", items: 2, payment: "Cash", total: "Rp 220.000" },
-  { id: "INV-2032", customer: "Andi W.", items: 4, payment: "Debit", total: "Rp 760.000" }
-];
-
-export default function HomePage() {
   return (
     <AppShell
       title="Perfume Store Overview"
@@ -82,20 +74,27 @@ export default function HomePage() {
         <Card>
           <SectionHeader title="Low stock alerts" subtitle="Restock before reaching minimum thresholds." />
           <div className="mt-4 space-y-3">
-            {lowStockItems.map((item) => (
-              <div key={item.name} className="flex items-center justify-between rounded-xl border border-white/10 bg-white/5 p-4">
-                <div>
-                  <p className="text-sm font-semibold text-white">{item.name}</p>
-                  <p className="text-xs text-slate-400">{item.variant}</p>
-                </div>
-                <div className="text-right">
-                  <p className="text-sm text-coral-300">
-                    {item.stock} / {item.min} units
-                  </p>
-                  <Badge label="Reorder" tone="warning" />
-                </div>
+            {variants.length === 0 ? (
+              <div className="rounded-2xl border border-white/10 bg-white/5 p-6 text-sm text-slate-300">
+                No variants found. Add product variants to enable stock alerts.
               </div>
-            ))}
+            ) : (
+              variants.slice(0, 3).map((variant) => (
+                <div
+                  key={variant.id}
+                  className="flex items-center justify-between rounded-xl border border-white/10 bg-white/5 p-4"
+                >
+                  <div>
+                    <p className="text-sm font-semibold text-white">{variant.product?.name ?? "Unnamed product"}</p>
+                    <p className="text-xs text-slate-400">{variant.bottle_size_ml} ml bottle</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm text-coral-300">Min {Number(variant.min_stock ?? 0)} units</p>
+                    <Badge label="Check stock" tone="warning" />
+                  </div>
+                </div>
+              ))
+            )}
           </div>
         </Card>
 
@@ -106,17 +105,26 @@ export default function HomePage() {
             action={<Button variant="ghost">See all</Button>}
           />
           <div className="mt-4 space-y-3">
-            {transactions.map((item) => (
-              <div key={item.id} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/5 p-4">
-                <div>
-                  <p className="text-sm font-semibold text-white">{item.id}</p>
-                  <p className="text-xs text-slate-400">{item.customer}</p>
-                </div>
-                <div className="text-xs text-slate-400">{item.items} items</div>
-                <div className="text-xs text-slate-400">{item.payment}</div>
-                <div className="text-sm font-semibold text-white">{item.total}</div>
+            {transactions.length === 0 ? (
+              <div className="rounded-2xl border border-white/10 bg-white/5 p-6 text-sm text-slate-300">
+                No transactions yet. Start selling to see activity here.
               </div>
-            ))}
+            ) : (
+              transactions.slice(0, 3).map((item) => (
+                <div
+                  key={item.id}
+                  className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/5 p-4"
+                >
+                  <div>
+                    <p className="text-sm font-semibold text-white">{item.invoice_no}</p>
+                    <p className="text-xs text-slate-400">{item.payment_method ?? "Payment pending"}</p>
+                  </div>
+                  <div className="text-sm font-semibold text-white">
+                    Rp {Number(item.total).toLocaleString("id-ID")}
+                  </div>
+                </div>
+              ))
+            )}
           </div>
         </Card>
       </section>
