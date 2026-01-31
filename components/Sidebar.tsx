@@ -27,13 +27,13 @@ export default async function Sidebar() {
   const alertCta = alert?.note ?? "View Alerts";
 
   return (
-    <aside className="sticky top-0 hidden h-screen w-72 shrink-0 border-r border-white/10 bg-slate-950/95 px-6 py-8 lg:block">
+    <aside className="sticky top-0 hidden h-screen w-72 shrink-0 border-r border-slate-200 bg-white px-6 py-8 dark:border-white/10 dark:bg-slate-950/95 lg:block">
       <div className="flex items-center gap-3">
         <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary-600 text-white shadow-soft">
           <span className="text-lg font-semibold">PX</span>
         </div>
         <div>
-          <p className="text-lg font-semibold">Parfume POS</p>
+          <p className="text-lg font-semibold text-slate-900 dark:text-white">Parfume POS</p>
           <p className="text-xs text-slate-400">Fast retail control</p>
         </div>
       </div>
@@ -44,7 +44,7 @@ export default async function Sidebar() {
             <Link
               key={item.href}
               href={item.href ?? "#"}
-              className="flex items-center gap-3 rounded-xl px-3 py-2 text-sm text-slate-300 transition hover:bg-white/5 hover:text-white"
+              className="flex items-center gap-3 rounded-xl px-3 py-2 text-sm text-slate-600 transition hover:bg-slate-100 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-white/5 dark:hover:text-white"
             >
               {Icon ? <Icon className="h-4 w-4" /> : null}
               {item.label}
@@ -52,12 +52,12 @@ export default async function Sidebar() {
           );
         })}
       </nav>
-      <div className="mt-10 rounded-2xl border border-white/10 bg-gradient-to-br from-white/5 to-white/0 p-4">
-        <p className="text-sm font-semibold">{alertTitle}</p>
+      <div className="mt-10 rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-white/10 dark:bg-gradient-to-br dark:from-white/5 dark:to-white/0">
+        <p className="text-sm font-semibold text-slate-900 dark:text-white">{alertTitle}</p>
         <p className="mt-2 text-xs text-slate-400">
           {lowStockCount} items below minimum. {alertDescription}
         </p>
-        <button className="mt-4 w-full rounded-xl bg-white/10 px-3 py-2 text-xs font-semibold text-white transition hover:bg-white/20">
+        <button className="mt-4 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-100 dark:border-white/10 dark:bg-white/10 dark:text-white dark:hover:bg-white/20">
           {alertCta}
         </button>
       </div>

@@ -33,11 +33,11 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-slate-950 px-4 py-12 text-slate-100">
+    <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4 py-12 text-slate-900 dark:bg-slate-950 dark:text-slate-100">
       <Card className="w-full max-w-md space-y-6">
         <div>
           <p className="text-xs uppercase tracking-[0.3em] text-slate-400">Parfume POS</p>
-          <h1 className="mt-2 text-2xl font-semibold text-white">Sign in to your workspace</h1>
+          <h1 className="mt-2 text-2xl font-semibold text-slate-900 dark:text-white">Sign in to your workspace</h1>
           <p className="mt-2 text-sm text-slate-400">
             This POS is private. Only admin-created users can access the system.
           </p>
@@ -46,7 +46,7 @@ export default function LoginPage() {
           <div className="space-y-2">
             <label className="text-xs text-slate-400">Email</label>
             <input
-              className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-slate-500"
+              className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 placeholder:text-slate-400 dark:border-white/10 dark:bg-white/5 dark:text-white dark:placeholder:text-slate-500"
               placeholder="admin@store.com"
               type="email"
               value={email}
@@ -57,7 +57,7 @@ export default function LoginPage() {
           <div className="space-y-2">
             <label className="text-xs text-slate-400">Password</label>
             <input
-              className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-slate-500"
+              className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 placeholder:text-slate-400 dark:border-white/10 dark:bg-white/5 dark:text-white dark:placeholder:text-slate-500"
               placeholder="********"
               type="password"
               value={password}
