@@ -94,7 +94,7 @@ const parseCursor = (cursor?: string | null): CursorPayload | null => {
   return { createdAt, id };
 };
 
-const applyCursor = <T>(query: T, cursor?: string | null) => {
+const applyCursor = <T extends { or: (value: string) => T }>(query: T, cursor?: string | null) => {
   const parsed = parseCursor(cursor);
   if (!parsed) {
     return query;

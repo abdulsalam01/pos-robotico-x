@@ -11,7 +11,7 @@ interface TopbarProps {
 }
 
 export default async function Topbar({ title, description }: TopbarProps) {
-  const locale = getServerLocale();
+  const locale = await getServerLocale();
   const [metaItems, searchItems] = await Promise.all([
     fetchUiContent("global", "topbar_meta"),
     fetchUiContent("global", "topbar_search")

@@ -10,7 +10,7 @@ interface VendorsPageProps {
 }
 
 export default async function VendorsPage({ searchParams }: VendorsPageProps) {
-  const locale = getServerLocale();
+  const locale = await getServerLocale();
   const resolvedSearchParams = (await searchParams) ?? {};
   const cursor = resolvedSearchParams.cursor;
   const { data, nextCursor } = await fetchVendorsWithCursor(cursor);

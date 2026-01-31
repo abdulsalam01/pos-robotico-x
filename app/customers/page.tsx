@@ -11,7 +11,7 @@ interface CustomersPageProps {
 }
 
 export default async function CustomersPage({ searchParams }: CustomersPageProps) {
-  const locale = getServerLocale();
+  const locale = await getServerLocale();
   const resolvedSearchParams = (await searchParams) ?? {};
   const cursor = resolvedSearchParams.cursor;
   const { data, nextCursor } = await fetchCustomersWithCursor(cursor);

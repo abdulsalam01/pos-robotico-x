@@ -11,7 +11,7 @@ interface DiscountsPageProps {
 }
 
 export default async function DiscountsPage({ searchParams }: DiscountsPageProps) {
-  const locale = getServerLocale();
+  const locale = await getServerLocale();
   const resolvedSearchParams = (await searchParams) ?? {};
   const cursor = resolvedSearchParams.cursor;
   const [{ data, nextCursor }, rules, previewNotes] = await Promise.all([

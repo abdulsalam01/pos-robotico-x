@@ -17,7 +17,7 @@ const iconMap = {
 };
 
 export default async function Sidebar() {
-  const locale = getServerLocale();
+  const locale = await getServerLocale();
   const [navItems, alertItems, lowStockCount] = await Promise.all([
     fetchUiContent("global", "sidebar_nav"),
     fetchUiContent("global", "sidebar_alert"),

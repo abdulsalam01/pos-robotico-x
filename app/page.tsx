@@ -8,7 +8,7 @@ import { getServerLocale } from "@/lib/i18n.server";
 import { translate } from "@/lib/i18n";
 
 export default async function HomePage() {
-  const locale = getServerLocale();
+  const locale = await getServerLocale();
   const [variants, transactions, kpis, salesPulse, quickActions, salesChart] = await Promise.all([
     fetchVariantsWithCursor().then((response) => response.data),
     fetchTransactionsWithCursor().then((response) => response.data),
