@@ -21,6 +21,12 @@ interface ProductImageRow {
   image_url: string;
 }
 
+interface UnitRow {
+  id: string;
+  label: string;
+  symbol: string | null;
+}
+
 export default function ProductsClient({ products, variants, detailFields, nextCursor }: ProductsClientProps) {
   const { locale } = useLanguage();
   const [selectedProductId, setSelectedProductId] = useState<string | null>(products[0]?.id ?? null);
@@ -29,6 +35,10 @@ export default function ProductsClient({ products, variants, detailFields, nextC
   const [variantList, setVariantList] = useState<VariantRow[]>(variants);
   const [variantStock, setVariantStock] = useState<Record<string, number>>({});
   const [productImages, setProductImages] = useState<ProductImageRow[]>([]);
+  const [units, setUnits] = useState<UnitRow[]>([]);
+  const [variantPage, setVariantPage] = useState(1);
+
+  const variantPageSize = 5;
 
   const selectedProduct = useMemo(
     () => productList.find((product) => product.id === selectedProductId) ?? productList[0],
@@ -39,6 +49,24 @@ export default function ProductsClient({ products, variants, detailFields, nextC
     () => variantList.filter((variant) => variant.product_id === selectedProduct?.id),
     [variantList, selectedProduct?.id]
   );
+
+  const visibleVariants = useMemo(
+    () => filteredVariants.slice(0, variantPage * variantPageSize),
+    [filteredVariants, variantPage, variantPageSize]
+  );
+
+  useEffect(() => {
+    const loadUnits = async () => {
+      const { data } = await supabase.from("units").select("id,label,symbol").order("label");
+      setUnits(data ?? []);
+    };
+
+    void loadUnits();
+  }, []);
+
+  useEffect(() => {
+    setVariantPage(1);
+  }, [selectedProduct?.id]);
 
   useEffect(() => {
     const loadImages = async () => {
@@ -185,12 +213,13 @@ export default function ProductsClient({ products, variants, detailFields, nextC
       .insert({
         product_id: selectedProduct.id,
         bottle_size_ml: Number(values.bottle_size_ml),
+        unit_label: values.unit_label || "ml",
         barcode: values.barcode || null,
         price: Number(values.price),
         min_stock: values.min_stock ? Number(values.min_stock) : 0,
         cost_per_ml: costPerMl
       })
-      .select("id,product_id,bottle_size_ml,barcode,price,cost_per_ml,min_stock,created_at,product:products(name)")
+      .select("id,product_id,bottle_size_ml,unit_label,barcode,price,cost_per_ml,min_stock,created_at,product:products(name)")
       .single();
 
     if (error) {
@@ -208,12 +237,13 @@ export default function ProductsClient({ products, variants, detailFields, nextC
       .from("product_variants")
       .update({
         bottle_size_ml: Number(values.bottle_size_ml),
+        unit_label: values.unit_label || "ml",
         barcode: values.barcode || null,
         price: Number(values.price),
         min_stock: values.min_stock ? Number(values.min_stock) : 0
       })
       .eq("id", variantId)
-      .select("id,product_id,bottle_size_ml,barcode,price,cost_per_ml,min_stock,created_at,product:products(name)")
+      .select("id,product_id,bottle_size_ml,unit_label,barcode,price,cost_per_ml,min_stock,created_at,product:products(name)")
       .single();
 
     if (error) {
@@ -247,7 +277,7 @@ export default function ProductsClient({ products, variants, detailFields, nextC
       .from("product_variants")
       .update({ cost_per_ml: costPerMl })
       .eq("id", variantId)
-      .select("id,product_id,bottle_size_ml,barcode,price,cost_per_ml,min_stock,created_at,product:products(name)")
+      .select("id,product_id,bottle_size_ml,unit_label,barcode,price,cost_per_ml,min_stock,created_at,product:products(name)")
       .single();
 
     if (error) {
@@ -482,27 +512,68 @@ export default function ProductsClient({ products, variants, detailFields, nextC
             title={translate(locale, "Variant pricing")}
             subtitle={translate(locale, "Set bottle size and margin with realtime HPP updates.")}
             action={
-              <QuickAddDialog
-                title="Add variant"
-                description="Define size, price, and minimum stock"
-                triggerLabel="Quick add"
-                fields={[
-                  { name: "bottle_size_ml", label: "Bottle size (ml)", type: "number", required: true },
-                  { name: "barcode", label: "Barcode", placeholder: "Barcode" },
-                  { name: "price", label: "Price", type: "number", required: true },
-                  { name: "min_stock", label: "Min", type: "number" }
-                ]}
-                onSubmit={handleCreateVariant}
-              />
+              <div className="flex flex-wrap gap-2">
+                <QuickAddDialog
+                  title="Add variant"
+                  description="Define size, price, and minimum stock"
+                  triggerLabel="Quick add"
+                  fields={[
+                    { name: "bottle_size_ml", label: "Bottle size", type: "number", required: true },
+                    {
+                      name: "unit_label",
+                      label: "Unit",
+                      type: "select",
+                      options:
+                        units.length > 0
+                          ? units.map((unit) => ({
+                              label: unit.symbol ? `${unit.label} (${unit.symbol})` : unit.label,
+                              value: unit.symbol ?? unit.label
+                            }))
+                          : [
+                              { label: "Milliliter (ml)", value: "ml" },
+                              { label: "Gram (g)", value: "g" },
+                              { label: "Piece (pcs)", value: "pcs" }
+                            ]
+                    },
+                    { name: "barcode", label: "Barcode", placeholder: "Barcode" },
+                    { name: "price", label: "Price", type: "currency", required: true },
+                    { name: "min_stock", label: "Min", type: "number" }
+                  ]}
+                  onSubmit={handleCreateVariant}
+                />
+                <QuickAddDialog
+                  title="Add unit"
+                  description="Manage unit master list"
+                  triggerLabel="Add unit"
+                  submitLabel="Save"
+                  fields={[
+                    { name: "label", label: "Unit name", placeholder: "Unit name", required: true },
+                    { name: "symbol", label: "Symbol", placeholder: "Symbol" }
+                  ]}
+                  onSubmit={async (values) => {
+                    const { data, error } = await supabase
+                      .from("units")
+                      .insert({ label: values.label, symbol: values.symbol || null })
+                      .select("id,label,symbol")
+                      .single();
+                    if (error) {
+                      throw error;
+                    }
+                    if (data) {
+                      setUnits((prev) => [...prev, data]);
+                    }
+                  }}
+                />
+              </div>
             }
           />
           <div className="mt-4 space-y-3">
-            {filteredVariants.length === 0 ? (
+            {visibleVariants.length === 0 ? (
               <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-500 dark:border-white/10 dark:bg-white/5 dark:text-slate-300">
                 {translate(locale, "No variants yet. Add a product variant to define bottle size and pricing.")}
               </div>
             ) : (
-              filteredVariants.map((variant) => (
+              visibleVariants.map((variant) => (
                 <div
                   key={variant.id}
                   className="rounded-xl border border-slate-200 bg-white p-4 dark:border-white/10 dark:bg-white/5"
@@ -510,7 +581,7 @@ export default function ProductsClient({ products, variants, detailFields, nextC
                   <div className="flex flex-wrap items-center justify-between gap-3">
                     <div>
                       <p className="text-sm font-semibold text-slate-900 dark:text-white">
-                        {variant.bottle_size_ml} ml bottle
+                        {variant.bottle_size_ml} {variant.unit_label ?? "ml"}
                       </p>
                       <p className="text-xs text-slate-400">Product {variant.product?.name ?? "—"}</p>
                     </div>
@@ -536,14 +607,31 @@ export default function ProductsClient({ products, variants, detailFields, nextC
                       submitLabel="Save"
                       initialValues={{
                         bottle_size_ml: String(variant.bottle_size_ml),
+                        unit_label: variant.unit_label ?? "ml",
                         barcode: variant.barcode ?? "",
                         price: String(variant.price),
                         min_stock: String(variant.min_stock ?? 0)
                       }}
                       fields={[
-                        { name: "bottle_size_ml", label: "Bottle size (ml)", type: "number", required: true },
+                        { name: "bottle_size_ml", label: "Bottle size", type: "number", required: true },
+                        {
+                          name: "unit_label",
+                          label: "Unit",
+                          type: "select",
+                          options:
+                            units.length > 0
+                              ? units.map((unit) => ({
+                                  label: unit.symbol ? `${unit.label} (${unit.symbol})` : unit.label,
+                                  value: unit.symbol ?? unit.label
+                                }))
+                              : [
+                                  { label: "Milliliter (ml)", value: "ml" },
+                                  { label: "Gram (g)", value: "g" },
+                                  { label: "Piece (pcs)", value: "pcs" }
+                                ]
+                        },
                         { name: "barcode", label: "Barcode", placeholder: "Barcode" },
-                        { name: "price", label: "Price", type: "number", required: true },
+                        { name: "price", label: "Price", type: "currency", required: true },
                         { name: "min_stock", label: "Min", type: "number" }
                       ]}
                       onSubmit={(values) => handleUpdateVariant(variant.id, values)}
@@ -580,6 +668,13 @@ export default function ProductsClient({ products, variants, detailFields, nextC
               ))
             )}
           </div>
+          {filteredVariants.length > visibleVariants.length ? (
+            <div className="mt-4 flex justify-end">
+              <Button variant="secondary" onClick={() => setVariantPage((prev) => prev + 1)}>
+                Load more variants
+              </Button>
+            </div>
+          ) : null}
         </Card>
       </section>
     </>

@@ -48,7 +48,9 @@ export default async function InventoryPage({ searchParams }: InventoryPageProps
                     <p className="text-sm font-semibold text-slate-900 dark:text-white">
                       {variant.product?.name ?? "Unnamed product"}
                     </p>
-                    <p className="text-xs text-slate-400">{variant.bottle_size_ml} ml bottle</p>
+                    <p className="text-xs text-slate-400">
+                      {variant.bottle_size_ml} {variant.unit_label ?? "ml"}
+                    </p>
                   </div>
                   <div className="text-sm text-slate-600 dark:text-slate-300">
                     {translate(locale, "On hand: connect inventory ledger")}

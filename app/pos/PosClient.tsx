@@ -1,13 +1,14 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Badge, Button, Card, SectionHeader } from "@/components/ui";
-import type { ProductRow, UiContentRow } from "@/lib/data";
+import type { ProductRow, UiContentRow, VariantRow } from "@/lib/data";
 import { useLanguage } from "@/components/LanguageProvider";
 import { translate } from "@/lib/i18n";
 
 interface PosClientProps {
   products: ProductRow[];
+  variants: VariantRow[];
   customerFields: UiContentRow[];
   paymentMethods: UiContentRow[];
   summaryLines: UiContentRow[];
@@ -18,10 +19,12 @@ interface CartItem {
   name: string;
   quantity: number;
   sku?: string | null;
+  variantId?: string | null;
 }
 
 export default function PosClient({
   products,
+  variants,
   customerFields,
   paymentMethods,
   summaryLines
@@ -32,6 +35,35 @@ export default function PosClient({
   const [notice, setNotice] = useState<string | null>(null);
   const [actionNotice, setActionNotice] = useState<string | null>(null);
   const [selectedPayment, setSelectedPayment] = useState<string | null>(null);
+  const [cashReceived, setCashReceived] = useState("");
+  const [changeReturned, setChangeReturned] = useState("");
+  const [scannerValue, setScannerValue] = useState("");
+  const scannerInputRef = useRef<HTMLInputElement | null>(null);
+  const [productPage, setProductPage] = useState(1);
+  const productPageSize = 6;
+
+  useEffect(() => {
+    if (scannerOpen) {
+      const timer = setTimeout(() => {
+        scannerInputRef.current?.focus();
+      }, 50);
+      return () => clearTimeout(timer);
+    }
+    return undefined;
+  }, [scannerOpen]);
+
+  const formatIdr = (value: string) => {
+    if (!value) {
+      return "";
+    }
+    const numericValue = Number(value);
+    if (Number.isNaN(numericValue)) {
+      return "";
+    }
+    return new Intl.NumberFormat("id-ID").format(numericValue);
+  };
+
+  const parseIdr = (value: string) => value.replace(/[^\d]/g, "");
 
   const handleAddToCart = (product: ProductRow) => {
     setCartItems((prev) => {
@@ -44,6 +76,44 @@ export default function PosClient({
       return [...prev, { id: product.id, name: product.name, quantity: 1, sku: product.sku }];
     });
     setNotice(`${translate(locale, "Add to cart")}: ${product.name}.`);
+  };
+
+  const handleAddVariant = (variant: VariantRow) => {
+    const unitLabel = variant.unit_label ?? "ml";
+    const name = `${variant.product?.name ?? "Product"} ${variant.bottle_size_ml} ${unitLabel}`;
+    setCartItems((prev) => {
+      const existing = prev.find((item) => item.variantId === variant.id);
+      if (existing) {
+        return prev.map((item) =>
+          item.variantId === variant.id ? { ...item, quantity: item.quantity + 1 } : item
+        );
+      }
+      return [
+        ...prev,
+        {
+          id: variant.id,
+          name,
+          quantity: 1,
+          sku: variant.barcode ?? null,
+          variantId: variant.id
+        }
+      ];
+    });
+    setNotice(`${translate(locale, "Add to cart")}: ${name}.`);
+  };
+
+  const handleScanSubmit = () => {
+    const trimmed = scannerValue.trim();
+    if (!trimmed) {
+      return;
+    }
+    const match = variants.find((variant) => variant.barcode === trimmed);
+    if (!match) {
+      setNotice(`Barcode ${trimmed} not found.`);
+      return;
+    }
+    handleAddVariant(match);
+    setScannerValue("");
   };
 
   const handleRemoveItem = (id: string) => {
@@ -88,6 +158,11 @@ export default function PosClient({
     [cartItems]
   );
 
+  const visibleProducts = useMemo(
+    () => products.slice(0, productPage * productPageSize),
+    [products, productPage, productPageSize]
+  );
+
   return (
     <div className="grid gap-6 xl:grid-cols-[1.6fr,1fr]">
       <div className="space-y-6">
@@ -109,12 +184,12 @@ export default function PosClient({
             </div>
           ) : null}
           <div className="mt-5 grid gap-4 md:grid-cols-3">
-            {products.length === 0 ? (
+            {visibleProducts.length === 0 ? (
               <div className="rounded-2xl border border-slate-200 bg-slate-50 p-6 text-sm text-slate-500 dark:border-white/10 dark:bg-white/5 dark:text-slate-300">
                 {translate(locale, "No products yet. Add products to start selling.")}
               </div>
             ) : (
-              products.map((product) => (
+              visibleProducts.map((product) => (
                 <div
                   key={product.id}
                   className="rounded-2xl border border-slate-200 bg-white p-4 dark:border-white/10 dark:bg-white/5"
@@ -141,6 +216,13 @@ export default function PosClient({
               ))
             )}
           </div>
+          {products.length > visibleProducts.length ? (
+            <div className="mt-4 flex justify-end">
+              <Button variant="secondary" onClick={() => setProductPage((prev) => prev + 1)}>
+                Load more products
+              </Button>
+            </div>
+          ) : null}
         </Card>
 
         <Card>
@@ -267,10 +349,16 @@ export default function PosClient({
             <input
               className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 placeholder:text-slate-400 dark:border-white/10 dark:bg-white/5 dark:text-white dark:placeholder:text-slate-500"
               placeholder={translate(locale, "Cash received")}
+              inputMode="numeric"
+              value={formatIdr(cashReceived)}
+              onChange={(event) => setCashReceived(parseIdr(event.target.value))}
             />
             <input
               className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 placeholder:text-slate-400 dark:border-white/10 dark:bg-white/5 dark:text-white dark:placeholder:text-slate-500"
               placeholder={translate(locale, "Change returned")}
+              inputMode="numeric"
+              value={formatIdr(changeReturned)}
+              onChange={(event) => setChangeReturned(parseIdr(event.target.value))}
             />
           </div>
         </div>
@@ -306,6 +394,25 @@ export default function PosClient({
             </div>
             <div className="mt-4 rounded-xl border border-dashed border-slate-200 bg-slate-50 p-6 text-center text-sm text-slate-500 dark:border-white/10 dark:bg-white/5 dark:text-slate-300">
               {translate(locale, "Scanner ready. Focus the cursor here and scan the barcode.")}
+            </div>
+            <div className="mt-4 space-y-3">
+              <label className="text-xs font-semibold text-slate-600 dark:text-slate-200">
+                Barcode input
+                <input
+                  ref={scannerInputRef}
+                  className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 dark:border-white/10 dark:bg-white/5 dark:text-white"
+                  placeholder="Scan or type barcode"
+                  value={scannerValue}
+                  onChange={(event) => setScannerValue(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter") {
+                      event.preventDefault();
+                      handleScanSubmit();
+                    }
+                  }}
+                />
+              </label>
+              <Button onClick={handleScanSubmit}>Add barcode</Button>
             </div>
             <div className="mt-4 flex gap-3">
               <Button onClick={() => setScannerOpen(false)}>{translate(locale, "Done scanning")}</Button>

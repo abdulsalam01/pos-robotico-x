@@ -25,6 +25,13 @@ interface PurchaseRow {
   product?: { name: string | null } | null;
 }
 
+interface PurchaseItemDraft {
+  id: string;
+  product_id: string;
+  volume_liter: string;
+  price_per_liter: string;
+}
+
 interface VendorsClientProps {
   initialData: VendorRow[];
   nextCursor: string | null;
@@ -35,6 +42,10 @@ export default function VendorsClient({ initialData, nextCursor }: VendorsClient
   const [vendors, setVendors] = useState<VendorRow[]>(initialData);
   const [products, setProducts] = useState<ProductOption[]>([]);
   const [purchases, setPurchases] = useState<PurchaseRow[]>([]);
+  const [purchaseCart, setPurchaseCart] = useState<PurchaseItemDraft[]>([]);
+  const [purchaseVendor, setPurchaseVendor] = useState("");
+  const [purchasePage, setPurchasePage] = useState(1);
+  const purchasePageSize = 5;
 
   useEffect(() => {
     const loadProducts = async () => {
@@ -124,6 +135,68 @@ export default function VendorsClient({ initialData, nextCursor }: VendorsClient
     }
   };
 
+  const visiblePurchases = purchases.slice(0, purchasePage * purchasePageSize);
+
+  const formatIdr = (value: string) => {
+    if (!value) {
+      return "";
+    }
+    const numericValue = Number(value);
+    if (Number.isNaN(numericValue)) {
+      return "";
+    }
+    return new Intl.NumberFormat("id-ID").format(numericValue);
+  };
+
+  const parseIdr = (value: string) => value.replace(/[^\d]/g, "");
+
+  const handleAddPurchaseItem = () => {
+    if (!products.length) {
+      return;
+    }
+    setPurchaseCart((prev) => [
+      ...prev,
+      { id: crypto.randomUUID(), product_id: products[0].id, volume_liter: "", price_per_liter: "" }
+    ]);
+  };
+
+  const handleUpdatePurchaseItem = (id: string, field: keyof PurchaseItemDraft, value: string) => {
+    setPurchaseCart((prev) =>
+      prev.map((item) => (item.id === id ? { ...item, [field]: value } : item))
+    );
+  };
+
+  const handleRemovePurchaseItem = (id: string) => {
+    setPurchaseCart((prev) => prev.filter((item) => item.id !== id));
+  };
+
+  const handleSubmitPurchase = async () => {
+    if (!purchaseVendor) {
+      return;
+    }
+    if (purchaseCart.length === 0) {
+      return;
+    }
+    const payload = purchaseCart.map((item) => ({
+      vendor_id: purchaseVendor,
+      product_id: item.product_id,
+      volume_liter: Number(item.volume_liter || 0),
+      price_per_liter: Number(item.price_per_liter || 0)
+    }));
+    const { data, error } = await supabase
+      .from("vendor_purchases")
+      .insert(payload)
+      .select("id,vendor_id,product_id,volume_liter,price_per_liter,purchased_at,vendor:vendors(name),product:products(name)");
+
+    if (error) {
+      return;
+    }
+    if (data) {
+      setPurchases((prev) => [...data, ...prev]);
+      setPurchaseCart([]);
+    }
+  };
+
   return (
     <Card>
       <SectionHeader
@@ -204,7 +277,7 @@ export default function VendorsClient({ initialData, nextCursor }: VendorsClient
                   options: products.map((product) => ({ label: product.name, value: product.id }))
                 },
                 { name: "volume_liter", label: "Volume (L)", type: "number", required: true },
-                { name: "price_per_liter", label: "Price per liter", type: "number", required: true }
+                { name: "price_per_liter", label: "Price per liter", type: "currency", required: true }
               ]}
               onSubmit={handleAddPurchase}
             />
@@ -215,7 +288,7 @@ export default function VendorsClient({ initialData, nextCursor }: VendorsClient
             No purchase data yet.
           </div>
         ) : (
-          purchases.map((purchase) => (
+          visiblePurchases.map((purchase) => (
             <div
               key={purchase.id}
               className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white p-4 text-xs text-slate-600 dark:border-white/10 dark:bg-white/5 dark:text-slate-300"
@@ -233,6 +306,100 @@ export default function VendorsClient({ initialData, nextCursor }: VendorsClient
             </div>
           ))
         )}
+        {purchases.length > visiblePurchases.length ? (
+          <div className="flex justify-end">
+            <Button variant="secondary" onClick={() => setPurchasePage((prev) => prev + 1)}>
+              Load more purchases
+            </Button>
+          </div>
+        ) : null}
+      </div>
+      <div className="mt-6 space-y-3">
+        <SectionHeader
+          title="Purchase builder"
+          subtitle="Build a multi-item vendor purchase."
+          action={
+            <Button variant="secondary" onClick={handleAddPurchaseItem}>
+              Add item
+            </Button>
+          }
+        />
+        <div className="grid gap-3 sm:grid-cols-2">
+          <label className="text-xs font-semibold text-slate-600 dark:text-slate-200">
+            Vendor
+            <select
+              value={purchaseVendor}
+              onChange={(event) => setPurchaseVendor(event.target.value)}
+              className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 dark:border-white/10 dark:bg-white/5 dark:text-white"
+            >
+              <option value="">Select vendor</option>
+              {vendors.map((vendor) => (
+                <option key={vendor.id} value={vendor.id}>
+                  {vendor.name}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+        {purchaseCart.length === 0 ? (
+          <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-xs text-slate-500 dark:border-white/10 dark:bg-white/5 dark:text-slate-300">
+            Add items to create a purchase order.
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {purchaseCart.map((item) => (
+              <div
+                key={item.id}
+                className="grid gap-3 rounded-xl border border-slate-200 bg-white p-4 text-xs text-slate-600 dark:border-white/10 dark:bg-white/5 dark:text-slate-300 md:grid-cols-[2fr,1fr,1fr,auto]"
+              >
+                <label className="text-xs font-semibold text-slate-600 dark:text-slate-200">
+                  Product
+                  <select
+                    value={item.product_id}
+                    onChange={(event) => handleUpdatePurchaseItem(item.id, "product_id", event.target.value)}
+                    className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 dark:border-white/10 dark:bg-white/5 dark:text-white"
+                  >
+                    {products.map((product) => (
+                      <option key={product.id} value={product.id}>
+                        {product.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="text-xs font-semibold text-slate-600 dark:text-slate-200">
+                  Volume (L)
+                  <input
+                    type="number"
+                    className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 dark:border-white/10 dark:bg-white/5 dark:text-white"
+                    value={item.volume_liter}
+                    onChange={(event) => handleUpdatePurchaseItem(item.id, "volume_liter", event.target.value)}
+                  />
+                </label>
+                <label className="text-xs font-semibold text-slate-600 dark:text-slate-200">
+                  Price per liter
+                  <input
+                    inputMode="numeric"
+                    className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 dark:border-white/10 dark:bg-white/5 dark:text-white"
+                    value={formatIdr(item.price_per_liter)}
+                    onChange={(event) =>
+                      handleUpdatePurchaseItem(item.id, "price_per_liter", parseIdr(event.target.value))
+                    }
+                  />
+                </label>
+                <div className="flex items-end">
+                  <Button variant="ghost" onClick={() => handleRemovePurchaseItem(item.id)}>
+                    Remove
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+        <div className="flex justify-end">
+          <Button onClick={handleSubmitPurchase} disabled={!purchaseVendor || purchaseCart.length === 0}>
+            Submit purchase
+          </Button>
+        </div>
       </div>
       <div className="mt-6 flex justify-end">
         {nextCursor ? (

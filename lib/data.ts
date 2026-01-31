@@ -52,6 +52,7 @@ export interface VariantRow {
   id: string;
   product_id?: string | null;
   bottle_size_ml: number;
+  unit_label?: string | null;
   barcode: string | null;
   price: number | string;
   cost_per_ml?: number | string | null;
@@ -222,7 +223,7 @@ export async function fetchVariantsWithCursor(cursor?: string): Promise<CursorPa
     const query = applyCursor(
       supabase
         .from("product_variants")
-        .select("id,product_id,bottle_size_ml,barcode,price,cost_per_ml,min_stock,created_at,product:products(name)")
+        .select("id,product_id,bottle_size_ml,unit_label,barcode,price,cost_per_ml,min_stock,created_at,product:products(name)")
         .order("created_at", { ascending: false })
         .order("id", { ascending: false })
         .limit(DEFAULT_PAGE_SIZE),

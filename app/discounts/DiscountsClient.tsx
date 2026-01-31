@@ -98,7 +98,7 @@ export default function DiscountsClient({ initialData, nextCursor }: DiscountsCl
                   { label: "Fixed amount", value: "fixed" }
                 ]
               },
-              { name: "value", label: "Value", type: "number", required: true },
+              { name: "value", label: "Value", type: "currency", required: true },
               {
                 name: "status",
                 label: "Status",
@@ -167,7 +167,7 @@ export default function DiscountsClient({ initialData, nextCursor }: DiscountsCl
                         { label: "Fixed amount", value: "fixed" }
                       ]
                     },
-                    { name: "value", label: "Value", type: "number", required: true },
+                    { name: "value", label: "Value", type: "currency", required: true },
                     {
                       name: "status",
                       label: "Status",
