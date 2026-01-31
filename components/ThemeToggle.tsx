@@ -2,9 +2,12 @@
 
 import { Moon, Sun } from "lucide-react";
 import { useTheme } from "@/components/ThemeProvider";
+import { useLanguage } from "@/components/LanguageProvider";
+import { translate } from "@/lib/i18n";
 
 export default function ThemeToggle() {
   const { theme, toggleTheme } = useTheme();
+  const { locale } = useLanguage();
 
   return (
     <button
@@ -14,7 +17,9 @@ export default function ThemeToggle() {
       aria-label="Toggle theme"
     >
       {theme === "dark" ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
-      <span className="hidden sm:inline">{theme === "dark" ? "Dark" : "Light"} mode</span>
+      <span className="hidden sm:inline">
+        {theme === "dark" ? translate(locale, "Dark mode") : translate(locale, "Light mode")}
+      </span>
     </button>
   );
 }

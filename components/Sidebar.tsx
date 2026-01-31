@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { BarChart3, Barcode, Boxes, Gem, Package, Receipt, Settings, ShoppingBag, Users } from "lucide-react";
 import { fetchUiContent, fetchVariantMinimumCount } from "@/lib/data";
+import { getServerLocale, translate } from "@/lib/i18n";
 
 const iconMap = {
   dashboard: BarChart3,
@@ -15,16 +16,17 @@ const iconMap = {
 };
 
 export default async function Sidebar() {
+  const locale = getServerLocale();
   const [navItems, alertItems, lowStockCount] = await Promise.all([
     fetchUiContent("global", "sidebar_nav"),
     fetchUiContent("global", "sidebar_alert"),
     fetchVariantMinimumCount()
   ]);
   const alert = alertItems[0];
-  const alertTitle = alert?.label ?? "Inventory Alerts";
+  const alertTitle = translate(locale, alert?.label ?? "Inventory Alerts");
   const alertDescription =
-    alert?.value ?? "Review inventory levels to prevent out of stock items.";
-  const alertCta = alert?.note ?? "View Alerts";
+    translate(locale, alert?.value ?? "Review inventory levels to prevent out of stock items.");
+  const alertCta = translate(locale, alert?.note ?? "View Alerts");
 
   return (
     <aside className="sticky top-0 hidden h-screen w-72 shrink-0 border-r border-slate-200 bg-white px-6 py-8 dark:border-white/10 dark:bg-slate-950/95 lg:block">
@@ -34,7 +36,7 @@ export default async function Sidebar() {
         </div>
         <div>
           <p className="text-lg font-semibold text-slate-900 dark:text-white">Parfume POS</p>
-          <p className="text-xs text-slate-400">Fast retail control</p>
+          <p className="text-xs text-slate-400">{translate(locale, "Fast retail control")}</p>
         </div>
       </div>
       <nav className="mt-10 space-y-1">
