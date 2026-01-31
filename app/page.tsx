@@ -4,7 +4,8 @@ import ActionList from "@/components/ActionList";
 import { BarChart, DonutChart, Gauge, LineChart } from "@/components/Charts";
 import { Badge, Card, SectionHeader, StatCard } from "@/components/ui";
 import { fetchTransactionsWithCursor, fetchUiContent, fetchVariantsWithCursor } from "@/lib/data";
-import { getServerLocale, translate } from "@/lib/i18n";
+import { getServerLocale } from "@/lib/i18n.server";
+import { translate } from "@/lib/i18n";
 
 export default async function HomePage() {
   const locale = getServerLocale();

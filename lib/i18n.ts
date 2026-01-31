@@ -1,5 +1,3 @@
-import { cookies } from "next/headers";
-
 export type Locale = "en" | "id";
 
 export const DEFAULT_LOCALE: Locale = "en";
@@ -210,12 +208,4 @@ const TRANSLATIONS: Record<Locale, Record<string, string>> = {
 
 export function translate(locale: Locale, value: string): string {
   return TRANSLATIONS[locale]?.[value] ?? value;
-}
-
-export function getServerLocale(): Locale {
-  const stored = cookies().get("locale")?.value;
-  if (stored === "id" || stored === "en") {
-    return stored;
-  }
-  return DEFAULT_LOCALE;
 }

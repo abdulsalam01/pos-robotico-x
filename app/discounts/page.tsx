@@ -3,7 +3,8 @@ import ActionButton from "@/components/ActionButton";
 import { Card, SectionHeader } from "@/components/ui";
 import { fetchDiscountsWithCursor, fetchUiContent } from "@/lib/data";
 import DiscountsClient from "@/app/discounts/DiscountsClient";
-import { getServerLocale, translate } from "@/lib/i18n";
+import { getServerLocale } from "@/lib/i18n.server";
+import { translate } from "@/lib/i18n";
 
 interface DiscountsPageProps {
   searchParams?: Promise<{ cursor?: string }>;

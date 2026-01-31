@@ -3,7 +3,8 @@ import ActionButton from "@/components/ActionButton";
 import { Card, SectionHeader } from "@/components/ui";
 import { fetchCustomersWithCursor } from "@/lib/data";
 import CustomersClient from "@/app/customers/CustomersClient";
-import { getServerLocale, translate } from "@/lib/i18n";
+import { getServerLocale } from "@/lib/i18n.server";
+import { translate } from "@/lib/i18n";
 
 interface CustomersPageProps {
   searchParams?: Promise<{ cursor?: string }>;

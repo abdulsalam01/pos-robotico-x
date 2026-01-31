@@ -58,6 +58,18 @@ export default function PosClient({
     setActionNotice(translate(locale, "Save draft"));
   };
 
+  const handleApplyMemberDiscount = () => {
+    if (cartItems.length === 0) {
+      setActionNotice(translate(locale, "No items yet. Add products from the left to build the cart."));
+      return;
+    }
+    setActionNotice(translate(locale, "Action completed successfully."));
+  };
+
+  const handleSaveForNextVisit = () => {
+    setActionNotice(translate(locale, "Save for next visit"));
+  };
+
   const totalItems = useMemo(
     () => cartItems.reduce((sum, item) => sum + item.quantity, 0),
     [cartItems]
@@ -133,8 +145,12 @@ export default function PosClient({
             ))}
           </div>
           <div className="mt-4 flex flex-wrap gap-3">
-            <Button variant="secondary">{translate(locale, "Apply member discount")}</Button>
-            <Button variant="ghost">{translate(locale, "Save for next visit")}</Button>
+            <Button variant="secondary" onClick={handleApplyMemberDiscount}>
+              {translate(locale, "Apply member discount")}
+            </Button>
+            <Button variant="ghost" onClick={handleSaveForNextVisit}>
+              {translate(locale, "Save for next visit")}
+            </Button>
           </div>
         </Card>
       </div>
