@@ -2,13 +2,14 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Badge, Button, Card, SectionHeader } from "@/components/ui";
-import type { ProductRow, UiContentRow, VariantRow } from "@/lib/data";
+import type { DiscountRow, ProductRow, UiContentRow, VariantRow } from "@/lib/data";
 import { useLanguage } from "@/components/LanguageProvider";
 import { translate } from "@/lib/i18n";
 
 interface PosClientProps {
   products: ProductRow[];
   variants: VariantRow[];
+  discounts: DiscountRow[];
   customerFields: UiContentRow[];
   paymentMethods: UiContentRow[];
   summaryLines: UiContentRow[];
@@ -26,6 +27,7 @@ interface CartItem {
 export default function PosClient({
   products,
   variants,
+  discounts,
   customerFields,
   paymentMethods,
   summaryLines
@@ -39,6 +41,7 @@ export default function PosClient({
   const [cashReceived, setCashReceived] = useState("");
   const [discountType, setDiscountType] = useState<"fixed" | "percentage">("fixed");
   const [discountValue, setDiscountValue] = useState("");
+  const [selectedDiscountId, setSelectedDiscountId] = useState<string>("");
   const [scannerValue, setScannerValue] = useState("");
   const scannerInputRef = useRef<HTMLInputElement | null>(null);
   const [productPage, setProductPage] = useState(1);
@@ -53,6 +56,20 @@ export default function PosClient({
     }
     return undefined;
   }, [scannerOpen]);
+
+  const activeDiscount = useMemo(
+    () => discounts.find((discount) => discount.id === selectedDiscountId) ?? null,
+    [discounts, selectedDiscountId]
+  );
+
+  useEffect(() => {
+    if (!activeDiscount) {
+      return;
+    }
+    const nextType = activeDiscount.type === "percentage" ? "percentage" : "fixed";
+    setDiscountType(nextType);
+    setDiscountValue(String(activeDiscount.value ?? ""));
+  }, [activeDiscount]);
 
   const formatIdr = (value: string) => {
     if (!value) {
@@ -384,7 +401,7 @@ export default function PosClient({
             );
           })}
         </div>
-        <div className="space-y-3">
+        <div className="space-y-4">
           <SectionHeader
             title={translate(locale, "Payment")}
             subtitle={translate(locale, "Choose method and input cash received.")}
@@ -406,11 +423,32 @@ export default function PosClient({
           </div>
           <div className="grid gap-3 sm:grid-cols-3">
             <label className="text-xs font-semibold text-slate-600 dark:text-slate-200">
+              Discount program
+              <select
+                className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 dark:border-white/10 dark:bg-white/5 dark:text-white"
+                value={selectedDiscountId}
+                onChange={(event) => setSelectedDiscountId(event.target.value)}
+              >
+                <option value="">Custom / no discount</option>
+                {discounts.map((discount) => (
+                  <option key={discount.id} value={discount.id}>
+                    {discount.name} ({discount.type === "percentage" ? `${discount.value}%` : `Rp ${discount.value}`})
+                  </option>
+                ))}
+              </select>
+              <span className="mt-1 block text-[11px] font-normal text-slate-400">
+                Syncs with Discount Master data.
+              </span>
+            </label>
+            <label className="text-xs font-semibold text-slate-600 dark:text-slate-200">
               Discount type
               <select
                 className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 dark:border-white/10 dark:bg-white/5 dark:text-white"
                 value={discountType}
-                onChange={(event) => setDiscountType(event.target.value as "fixed" | "percentage")}
+                onChange={(event) => {
+                  setDiscountType(event.target.value as "fixed" | "percentage");
+                  setSelectedDiscountId("");
+                }}
               >
                 <option value="fixed">Fixed amount</option>
                 <option value="percentage">Percentage</option>
@@ -423,11 +461,20 @@ export default function PosClient({
                 placeholder={discountType === "percentage" ? "%" : "Rp"}
                 inputMode="numeric"
                 value={discountValue}
-                onChange={(event) => setDiscountValue(parseIdr(event.target.value))}
+                onChange={(event) => {
+                  setDiscountValue(parseIdr(event.target.value));
+                  setSelectedDiscountId("");
+                }}
               />
             </label>
             <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs text-slate-500 dark:border-white/10 dark:bg-white/5 dark:text-slate-300">
-              Discount applied: Rp {formatIdr(String(Math.round(discountAmount))) || "0"}
+              <p className="text-xs font-semibold text-slate-600 dark:text-slate-200">
+                Applied discount
+              </p>
+              <p className="mt-1">
+                Rp {formatIdr(String(Math.round(discountAmount))) || "0"}{" "}
+                {activeDiscount ? `• ${activeDiscount.name}` : ""}
+              </p>
             </div>
           </div>
           <div className="grid gap-3 sm:grid-cols-2">

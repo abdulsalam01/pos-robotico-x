@@ -197,6 +197,12 @@ export default function VendorsClient({ initialData, nextCursor }: VendorsClient
     }
   };
 
+  const totalVolume = purchaseCart.reduce((sum, item) => sum + Number(item.volume_liter || 0), 0);
+  const totalCost = purchaseCart.reduce(
+    (sum, item) => sum + Number(item.volume_liter || 0) * Number(item.price_per_liter || 0),
+    0
+  );
+
   return (
     <Card>
       <SectionHeader
@@ -254,7 +260,7 @@ export default function VendorsClient({ initialData, nextCursor }: VendorsClient
       <div className="mt-6 space-y-3">
         <SectionHeader
           title="Log purchase"
-          subtitle="Add vendor costs to calculate HPP automatically."
+          subtitle="Quickly log a single vendor purchase line."
           action={
             <QuickAddDialog
               title="Log purchase"
@@ -317,85 +323,115 @@ export default function VendorsClient({ initialData, nextCursor }: VendorsClient
       <div className="mt-6 space-y-3">
         <SectionHeader
           title="Purchase builder"
-          subtitle="Build a multi-item vendor purchase."
+          subtitle="Create a multi-item vendor purchase in clear steps."
           action={
             <Button variant="secondary" onClick={handleAddPurchaseItem}>
               Add item
             </Button>
           }
         />
-        <div className="grid gap-3 sm:grid-cols-2">
-          <label className="text-xs font-semibold text-slate-600 dark:text-slate-200">
-            Vendor
-            <select
-              value={purchaseVendor}
-              onChange={(event) => setPurchaseVendor(event.target.value)}
-              className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 dark:border-white/10 dark:bg-white/5 dark:text-white"
-            >
-              <option value="">Select vendor</option>
-              {vendors.map((vendor) => (
-                <option key={vendor.id} value={vendor.id}>
-                  {vendor.name}
-                </option>
-              ))}
-            </select>
-          </label>
-        </div>
-        {purchaseCart.length === 0 ? (
-          <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-xs text-slate-500 dark:border-white/10 dark:bg-white/5 dark:text-slate-300">
-            Add items to create a purchase order.
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {purchaseCart.map((item) => (
-              <div
-                key={item.id}
-                className="grid gap-3 rounded-xl border border-slate-200 bg-white p-4 text-xs text-slate-600 dark:border-white/10 dark:bg-white/5 dark:text-slate-300 md:grid-cols-[2fr,1fr,1fr,auto]"
+        <div className="grid gap-4 lg:grid-cols-[1.1fr,1.4fr]">
+          <div className="space-y-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-white/10 dark:bg-white/5">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Step 1</p>
+              <p className="mt-1 text-sm font-semibold text-slate-900 dark:text-white">Select vendor</p>
+              <p className="text-xs text-slate-500 dark:text-slate-300">
+                Choose the supplier before adding purchase items.
+              </p>
+            </div>
+            <label className="text-xs font-semibold text-slate-600 dark:text-slate-200">
+              Vendor
+              <select
+                value={purchaseVendor}
+                onChange={(event) => setPurchaseVendor(event.target.value)}
+                className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 dark:border-white/10 dark:bg-white/5 dark:text-white"
               >
-                <label className="text-xs font-semibold text-slate-600 dark:text-slate-200">
-                  Product
-                  <select
-                    value={item.product_id}
-                    onChange={(event) => handleUpdatePurchaseItem(item.id, "product_id", event.target.value)}
-                    className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 dark:border-white/10 dark:bg-white/5 dark:text-white"
-                  >
-                    {products.map((product) => (
-                      <option key={product.id} value={product.id}>
-                        {product.name}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label className="text-xs font-semibold text-slate-600 dark:text-slate-200">
-                  Volume (L)
-                  <input
-                    type="number"
-                    className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 dark:border-white/10 dark:bg-white/5 dark:text-white"
-                    value={item.volume_liter}
-                    onChange={(event) => handleUpdatePurchaseItem(item.id, "volume_liter", event.target.value)}
-                  />
-                </label>
-                <label className="text-xs font-semibold text-slate-600 dark:text-slate-200">
-                  Price per liter
-                  <input
-                    inputMode="numeric"
-                    className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 dark:border-white/10 dark:bg-white/5 dark:text-white"
-                    value={formatIdr(item.price_per_liter)}
-                    onChange={(event) =>
-                      handleUpdatePurchaseItem(item.id, "price_per_liter", parseIdr(event.target.value))
-                    }
-                  />
-                </label>
-                <div className="flex items-end">
-                  <Button variant="ghost" onClick={() => handleRemovePurchaseItem(item.id)}>
-                    Remove
-                  </Button>
-                </div>
-              </div>
-            ))}
+                <option value="">Select vendor</option>
+                {vendors.map((vendor) => (
+                  <option key={vendor.id} value={vendor.id}>
+                    {vendor.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <div className="rounded-xl border border-slate-200 bg-white p-3 text-xs text-slate-500 dark:border-white/10 dark:bg-white/10 dark:text-slate-300">
+              <p className="font-semibold text-slate-600 dark:text-slate-200">Step 2 summary</p>
+              <p className="mt-1">Add items with volume and price per liter.</p>
+            </div>
           </div>
-        )}
-        <div className="flex justify-end">
+          <div className="space-y-4">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Step 2</p>
+              <p className="mt-1 text-sm font-semibold text-slate-900 dark:text-white">Add purchase items</p>
+              <p className="text-xs text-slate-500 dark:text-slate-300">
+                Each item logs the volume and price per liter from this vendor.
+              </p>
+            </div>
+            {purchaseCart.length === 0 ? (
+              <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-xs text-slate-500 dark:border-white/10 dark:bg-white/5 dark:text-slate-300">
+                Add items to create a purchase order.
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {purchaseCart.map((item) => (
+                  <div
+                    key={item.id}
+                    className="grid gap-3 rounded-xl border border-slate-200 bg-white p-4 text-xs text-slate-600 dark:border-white/10 dark:bg-white/5 dark:text-slate-300 md:grid-cols-[2fr,1fr,1fr,auto]"
+                  >
+                    <label className="text-xs font-semibold text-slate-600 dark:text-slate-200">
+                      Product
+                      <select
+                        value={item.product_id}
+                        onChange={(event) => handleUpdatePurchaseItem(item.id, "product_id", event.target.value)}
+                        className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 dark:border-white/10 dark:bg-white/5 dark:text-white"
+                      >
+                        {products.map((product) => (
+                          <option key={product.id} value={product.id}>
+                            {product.name}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <label className="text-xs font-semibold text-slate-600 dark:text-slate-200">
+                      Volume (L)
+                      <input
+                        type="number"
+                        className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 dark:border-white/10 dark:bg-white/5 dark:text-white"
+                        value={item.volume_liter}
+                        onChange={(event) => handleUpdatePurchaseItem(item.id, "volume_liter", event.target.value)}
+                      />
+                    </label>
+                    <label className="text-xs font-semibold text-slate-600 dark:text-slate-200">
+                      Price per liter
+                      <input
+                        inputMode="numeric"
+                        className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 dark:border-white/10 dark:bg-white/5 dark:text-white"
+                        value={formatIdr(item.price_per_liter)}
+                        onChange={(event) =>
+                          handleUpdatePurchaseItem(item.id, "price_per_liter", parseIdr(event.target.value))
+                        }
+                      />
+                    </label>
+                    <div className="flex items-end">
+                      <Button variant="ghost" onClick={() => handleRemovePurchaseItem(item.id)}>
+                        Remove
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white p-4 text-xs text-slate-600 dark:border-white/10 dark:bg-white/5 dark:text-slate-300">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Step 3</p>
+            <p className="mt-1 text-sm font-semibold text-slate-900 dark:text-white">Review & submit</p>
+            <p className="text-xs text-slate-500 dark:text-slate-300">
+              Total volume: {totalVolume.toLocaleString("id-ID")} L • Estimated cost: Rp{" "}
+              {totalCost.toLocaleString("id-ID")}
+            </p>
+          </div>
           <Button onClick={handleSubmitPurchase} disabled={!purchaseVendor || purchaseCart.length === 0}>
             Submit purchase
           </Button>
