@@ -85,7 +85,7 @@ export function Button({ children, variant = "primary", className, ...props }: B
   const variants = {
     primary: "bg-primary-600 text-white hover:bg-primary-500",
     secondary:
-      "border border-slate-200 bg-slate-100 text-slate-900 hover:bg-slate-200 dark:border-white/10 dark:bg-white/10 dark:text-white dark:hover:bg-white/20",
+      "border border-slate-200 bg-slate-100 text-slate-900 hover:bg-slate-200 dark:border-white/10 dark:bg-slate-900/60 dark:text-slate-100 dark:hover:bg-slate-900",
     ghost:
       "border border-slate-200 text-slate-700 hover:bg-slate-100 dark:border-white/10 dark:text-slate-200 dark:hover:bg-white/10"
   };
