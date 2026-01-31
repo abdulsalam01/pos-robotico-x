@@ -1,13 +1,16 @@
+import Link from "next/link";
 import AppShell from "@/components/AppShell";
 import { Badge, Button, Card, SectionHeader } from "@/components/ui";
+import { fetchDiscountsWithCursor } from "@/lib/data";
 
-const discounts = [
-  { name: "Ramadan Sale", type: "20%", valid: "15 Mar - 10 Apr", status: "Active" },
-  { name: "VIP Member", type: "10%", valid: "Always", status: "Active" },
-  { name: "New Store Launch", type: "Rp 50.000", valid: "Ended", status: "Expired" }
-];
+interface DiscountsPageProps {
+  searchParams?: { cursor?: string };
+}
 
-export default function DiscountsPage() {
+export default async function DiscountsPage({ searchParams }: DiscountsPageProps) {
+  const cursor = searchParams?.cursor;
+  const { data, nextCursor } = await fetchDiscountsWithCursor(cursor);
+
   return (
     <AppShell
       title="Discount Management"
@@ -20,16 +23,38 @@ export default function DiscountsPage() {
           action={<Button>Add discount</Button>}
         />
         <div className="mt-4 space-y-3">
-          {discounts.map((discount) => (
-            <div key={discount.name} className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-white/10 bg-white/5 p-4">
-              <div>
-                <p className="text-sm font-semibold text-white">{discount.name}</p>
-                <p className="text-xs text-slate-400">{discount.valid}</p>
-              </div>
-              <div className="text-sm text-slate-300">{discount.type}</div>
-              <Badge label={discount.status} tone={discount.status === "Expired" ? "warning" : "success"} />
+          {data.length === 0 ? (
+            <div className="rounded-2xl border border-white/10 bg-white/5 p-6 text-sm text-slate-300">
+              No discounts yet. Create a discount to start tracking campaigns.
             </div>
-          ))}
+          ) : (
+            data.map((discount) => (
+              <div key={discount.id} className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-white/10 bg-white/5 p-4">
+                <div>
+                  <p className="text-sm font-semibold text-white">{discount.name}</p>
+                  <p className="text-xs text-slate-400">
+                    {discount.valid_from ?? "—"} - {discount.valid_until ?? "—"}
+                  </p>
+                </div>
+                <div className="text-sm text-slate-300">
+                  {discount.type === "percentage"
+                    ? `${Number(discount.value)}%`
+                    : `Rp ${Number(discount.value).toLocaleString("id-ID")}`}
+                </div>
+                <Badge label={discount.status} tone={discount.status === "expired" ? "warning" : "success"} />
+              </div>
+            ))
+          )}
+        </div>
+        <div className="mt-6 flex justify-end">
+          {nextCursor ? (
+            <Link
+              href={{ pathname: "/discounts", query: { cursor: nextCursor } }}
+              className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/10"
+            >
+              Next page
+            </Link>
+          ) : null}
         </div>
       </Card>
 

@@ -1,34 +1,16 @@
+import Link from "next/link";
 import AppShell from "@/components/AppShell";
 import { Badge, Button, Card, SectionHeader } from "@/components/ui";
+import { fetchProductsWithCursor } from "@/lib/data";
 
-const products = [
-  {
-    name: "Amber Noir",
-    sku: "AN-001",
-    variants: "3ml, 5ml, 10ml",
-    price: "Rp 75.000 - Rp 210.000",
-    stock: "68 units",
-    status: "Healthy"
-  },
-  {
-    name: "Velvet Rose",
-    sku: "VR-014",
-    variants: "5ml, 15ml",
-    price: "Rp 90.000 - Rp 190.000",
-    stock: "42 units",
-    status: "Reorder"
-  },
-  {
-    name: "Citrus Muse",
-    sku: "CM-009",
-    variants: "10ml, 30ml",
-    price: "Rp 120.000 - Rp 320.000",
-    stock: "26 units",
-    status: "Low"
-  }
-];
+interface ProductsPageProps {
+  searchParams?: { cursor?: string };
+}
 
-export default function ProductsPage() {
+export default async function ProductsPage({ searchParams }: ProductsPageProps) {
+  const cursor = searchParams?.cursor;
+  const { data, nextCursor } = await fetchProductsWithCursor(cursor);
+
   return (
     <AppShell
       title="Products & Variants"
@@ -41,26 +23,42 @@ export default function ProductsPage() {
           action={<Button>Add new product</Button>}
         />
         <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {products.map((product) => (
-            <div key={product.sku} className="rounded-2xl border border-white/10 bg-white/5 p-4">
-              <div className="flex items-start justify-between">
-                <div>
-                  <p className="text-sm font-semibold text-white">{product.name}</p>
-                  <p className="text-xs text-slate-400">SKU {product.sku}</p>
-                </div>
-                <Badge label={product.status} tone={product.status === "Healthy" ? "success" : "warning"} />
-              </div>
-              <div className="mt-4 text-sm text-slate-300">
-                <p>Variants: {product.variants}</p>
-                <p>Price: {product.price}</p>
-                <p>Stock: {product.stock}</p>
-              </div>
-              <div className="mt-4 flex flex-wrap gap-2">
-                <Button variant="secondary">Edit</Button>
-                <Button variant="ghost">Generate barcode</Button>
-              </div>
+          {data.length === 0 ? (
+            <div className="rounded-2xl border border-white/10 bg-white/5 p-6 text-sm text-slate-300">
+              No products yet. Add a product to start tracking variants and inventory.
             </div>
-          ))}
+          ) : (
+            data.map((product) => (
+              <div key={product.id} className="rounded-2xl border border-white/10 bg-white/5 p-4">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <p className="text-sm font-semibold text-white">{product.name}</p>
+                    <p className="text-xs text-slate-400">SKU {product.sku ?? "—"}</p>
+                  </div>
+                  <Badge label={product.status ?? "Active"} tone={product.status === "Healthy" ? "success" : "warning"} />
+                </div>
+                <div className="mt-4 text-sm text-slate-300">
+                  <p>Variants: connect to variants table</p>
+                  <p>Price: connect to variants pricing</p>
+                  <p>Stock: connect to inventory ledger</p>
+                </div>
+                <div className="mt-4 flex flex-wrap gap-2">
+                  <Button variant="secondary">Edit</Button>
+                  <Button variant="ghost">Generate barcode</Button>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+        <div className="mt-6 flex justify-end">
+          {nextCursor ? (
+            <Link
+              href={{ pathname: "/products", query: { cursor: nextCursor } }}
+              className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/10"
+            >
+              Next page
+            </Link>
+          ) : null}
         </div>
       </Card>
 

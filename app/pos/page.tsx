@@ -1,26 +1,6 @@
 import AppShell from "@/components/AppShell";
 import { Badge, Button, Card, SectionHeader } from "@/components/ui";
-
-const featuredProducts = [
-  {
-    name: "Amber Noir",
-    variant: "10ml Bottle",
-    price: "Rp 120.000",
-    stock: 36
-  },
-  {
-    name: "Velvet Rose",
-    variant: "5ml Bottle",
-    price: "Rp 75.000",
-    stock: 18
-  },
-  {
-    name: "Citrus Muse",
-    variant: "15ml Bottle",
-    price: "Rp 160.000",
-    stock: 22
-  }
-];
+import { fetchProductsWithCursor } from "@/lib/data";
 
 const cartItems = [
   {
@@ -39,7 +19,9 @@ const cartItems = [
   }
 ];
 
-export default function PosPage() {
+export default async function PosPage() {
+  const { data: products } = await fetchProductsWithCursor();
+
   return (
     <AppShell
       title="Point of Sale"
@@ -60,21 +42,27 @@ export default function PosPage() {
               />
             </div>
             <div className="mt-5 grid gap-4 md:grid-cols-3">
-              {featuredProducts.map((product) => (
-                <div key={product.name} className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <p className="text-sm font-semibold text-white">{product.name}</p>
-                      <p className="text-xs text-slate-400">{product.variant}</p>
-                    </div>
-                    <Badge label={`${product.stock} in stock`} tone="success" />
-                  </div>
-                  <p className="mt-4 text-lg font-semibold text-white">{product.price}</p>
-                  <button className="mt-4 w-full rounded-xl bg-white/10 px-3 py-2 text-xs font-semibold text-white transition hover:bg-white/20">
-                    Add to cart
-                  </button>
+              {products.length === 0 ? (
+                <div className="rounded-2xl border border-white/10 bg-white/5 p-6 text-sm text-slate-300">
+                  No products yet. Add products to start selling.
                 </div>
-              ))}
+              ) : (
+                products.map((product) => (
+                  <div key={product.id} className="rounded-2xl border border-white/10 bg-white/5 p-4">
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <p className="text-sm font-semibold text-white">{product.name}</p>
+                        <p className="text-xs text-slate-400">SKU {product.sku ?? "—"}</p>
+                      </div>
+                      <Badge label={product.status ?? "Active"} tone="success" />
+                    </div>
+                    <p className="mt-4 text-xs text-slate-400">Pricing from variants table</p>
+                    <button className="mt-4 w-full rounded-xl bg-white/10 px-3 py-2 text-xs font-semibold text-white transition hover:bg-white/20">
+                      Add to cart
+                    </button>
+                  </div>
+                ))
+              )}
             </div>
           </Card>
 
