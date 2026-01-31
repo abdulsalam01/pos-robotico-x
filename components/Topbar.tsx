@@ -32,13 +32,22 @@ export default async function Topbar({ title, description }: TopbarProps) {
           {description ? <p className="mt-1 text-sm text-slate-400">{description}</p> : null}
         </div>
         <div className="flex flex-1 flex-wrap items-center justify-start gap-3 sm:flex-none sm:justify-end">
-          <div className="flex w-full max-w-md items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-2 text-sm text-slate-600 sm:w-72 dark:border-white/10 dark:bg-white/5 dark:text-slate-300">
-            <Search className="h-4 w-4 text-slate-400" />
-            <input
-              className="w-full bg-transparent text-sm text-slate-700 placeholder:text-slate-400 focus:outline-none dark:text-slate-200 dark:placeholder:text-slate-500"
-              placeholder={searchPlaceholder}
-            />
-          </div>
+          <form
+            className="w-full max-w-md sm:w-72"
+            action="/search"
+            method="get"
+            role="search"
+            aria-label={translate(locale, "Global search")}
+          >
+            <div className="flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-2 text-sm text-slate-600 dark:border-white/10 dark:bg-white/5 dark:text-slate-300">
+              <Search className="h-4 w-4 text-slate-400" />
+              <input
+                className="w-full bg-transparent text-sm text-slate-700 placeholder:text-slate-400 focus:outline-none dark:text-slate-200 dark:placeholder:text-slate-500"
+                placeholder={searchPlaceholder}
+                name="q"
+              />
+            </div>
+          </form>
           <NotificationsMenu />
           <UserMenu />
         </div>
