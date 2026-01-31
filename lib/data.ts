@@ -19,6 +19,8 @@ export interface ProductRow {
   name: string;
   sku: string | null;
   status: string | null;
+  base_ml?: number | null;
+  description?: string | null;
   created_at: string;
 }
 
@@ -110,7 +112,7 @@ export async function fetchProductsWithCursor(cursor?: string): Promise<CursorPa
     const query = applyCursor(
       supabase
         .from("products")
-        .select("id,name,sku,status,created_at")
+        .select("id,name,sku,status,base_ml,description,created_at")
         .order("created_at", { ascending: false })
         .order("id", { ascending: false })
         .limit(DEFAULT_PAGE_SIZE),

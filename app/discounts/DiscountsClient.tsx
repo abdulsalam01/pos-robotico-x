@@ -18,6 +18,16 @@ export default function DiscountsClient({ initialData, nextCursor }: DiscountsCl
   const { locale } = useLanguage();
   const [discounts, setDiscounts] = useState<DiscountRow[]>(initialData);
 
+  const formatDate = (value: string | null) => {
+    if (!value) {
+      return "—";
+    }
+    const date = new Date(value);
+    return Number.isNaN(date.getTime())
+      ? value
+      : date.toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" });
+  };
+
   const handleAddDiscount = async (values: Record<string, string>) => {
     const { data, error } = await supabase
       .from("discounts")
@@ -129,7 +139,7 @@ export default function DiscountsClient({ initialData, nextCursor }: DiscountsCl
               <div>
                 <p className="text-sm font-semibold text-slate-900 dark:text-white">{discount.name}</p>
                 <p className="text-xs text-slate-400">
-                  {discount.valid_from ?? "—"} - {discount.valid_until ?? "—"}
+                  {formatDate(discount.valid_from)} - {formatDate(discount.valid_until)}
                 </p>
               </div>
               <div className="text-sm text-slate-600 dark:text-slate-300">

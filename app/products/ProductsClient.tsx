@@ -148,9 +148,11 @@ export default function ProductsClient({ products, variants, detailFields, nextC
       .insert({
         name: values.name,
         sku: values.sku || null,
-        status: values.status || "Active"
+        status: values.status || "Active",
+        base_ml: values.base_ml ? Number(values.base_ml) : null,
+        description: values.description || null
       })
-      .select("id,name,sku,status,created_at")
+      .select("id,name,sku,status,base_ml,description,created_at")
       .single();
 
     if (error) {
@@ -170,10 +172,12 @@ export default function ProductsClient({ products, variants, detailFields, nextC
       .update({
         name: values.name,
         sku: values.sku || null,
-        status: values.status || "Active"
+        status: values.status || "Active",
+        base_ml: values.base_ml ? Number(values.base_ml) : null,
+        description: values.description || null
       })
       .eq("id", productId)
-      .select("id,name,sku,status,created_at")
+      .select("id,name,sku,status,base_ml,description,created_at")
       .single();
 
     if (error) {
@@ -313,8 +317,33 @@ export default function ProductsClient({ products, variants, detailFields, nextC
     setVariantStock((prev) => ({ ...prev, [variantId]: total }));
   };
 
-  const handleGenerateBarcode = (productName: string) => {
-    setStatusMessage(`${translate(locale, "Action completed successfully.")} (${productName})`);
+  const handleGenerateBarcode = async (productId: string) => {
+    const variant = variantList.find((item) => item.product_id === productId);
+    if (!variant) {
+      setStatusMessage("Add a variant before generating a barcode.");
+      return;
+    }
+    await handleGenerateVariantBarcode(variant.id);
+  };
+
+  const handleGenerateVariantBarcode = async (variantId: string) => {
+    const barcode = `PX-${Math.floor(100000 + Math.random() * 900000)}`;
+    const { data, error } = await supabase
+      .from("product_variants")
+      .update({ barcode })
+      .eq("id", variantId)
+      .select("id,product_id,bottle_size_ml,unit_label,barcode,price,cost_per_ml,min_stock,created_at,product:products(name)")
+      .single();
+
+    if (error) {
+      setStatusMessage(error.message);
+      return;
+    }
+
+    if (data) {
+      setVariantList((prev) => prev.map((variant) => (variant.id === variantId ? data : variant)));
+      setStatusMessage(`Barcode generated: ${barcode}`);
+    }
   };
 
   const handleUploadImage = async (event: ChangeEvent<HTMLInputElement>) => {
@@ -359,6 +388,8 @@ export default function ProductsClient({ products, variants, detailFields, nextC
               fields={[
                 { name: "name", label: "Product name", placeholder: "Product name", required: true },
                 { name: "sku", label: "SKU", placeholder: "SKU" },
+                { name: "base_ml", label: "Bottle size (ml)", type: "number" },
+                { name: "description", label: "Notes", placeholder: "Notes" },
                 {
                   name: "status",
                   label: "Status",
@@ -420,11 +451,15 @@ export default function ProductsClient({ products, variants, detailFields, nextC
                     initialValues={{
                       name: product.name,
                       sku: product.sku ?? "",
+                      base_ml: product.base_ml ? String(product.base_ml) : "",
+                      description: product.description ?? "",
                       status: product.status ?? "Active"
                     }}
                     fields={[
                       { name: "name", label: "Product name", placeholder: "Product name", required: true },
                       { name: "sku", label: "SKU", placeholder: "SKU" },
+                      { name: "base_ml", label: "Bottle size (ml)", type: "number" },
+                      { name: "description", label: "Notes", placeholder: "Notes" },
                       {
                         name: "status",
                         label: "Status",
@@ -440,7 +475,7 @@ export default function ProductsClient({ products, variants, detailFields, nextC
                   <Button variant="ghost" onClick={() => handleDeleteProduct(product.id)}>
                     Delete
                   </Button>
-                  <Button variant="ghost" onClick={() => handleGenerateBarcode(product.name)}>
+                  <Button variant="ghost" onClick={() => handleGenerateBarcode(product.id)}>
                     {translate(locale, "Generate barcode")}
                   </Button>
                 </div>
@@ -471,6 +506,22 @@ export default function ProductsClient({ products, variants, detailFields, nextC
               ? `Viewing details for ${selectedProduct.name}.`
               : translate(locale, "Select a product to see its detail form.")}
           </div>
+          {selectedProduct ? (
+            <div className="mt-4 grid gap-3 text-xs text-slate-500 dark:text-slate-300 sm:grid-cols-2">
+              <div className="rounded-xl border border-slate-200 bg-white p-3 dark:border-white/10 dark:bg-white/5">
+                <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Measurement</p>
+                <p className="mt-2 text-sm text-slate-700 dark:text-slate-200">
+                  {selectedProduct.base_ml ? `${selectedProduct.base_ml} ml` : "Not set"}
+                </p>
+              </div>
+              <div className="rounded-xl border border-slate-200 bg-white p-3 dark:border-white/10 dark:bg-white/5">
+                <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Notes</p>
+                <p className="mt-2 text-sm text-slate-700 dark:text-slate-200">
+                  {selectedProduct.description ?? "—"}
+                </p>
+              </div>
+            </div>
+          ) : null}
           <div className="mt-4 space-y-3">
             <label className="text-xs font-semibold text-slate-600 dark:text-slate-200">
               Upload product image
@@ -662,6 +713,9 @@ export default function ProductsClient({ products, variants, detailFields, nextC
                     </Button>
                     <Button variant="secondary" onClick={() => handleRecalculateHpp(variant.id)}>
                       Refresh HPP
+                    </Button>
+                    <Button variant="ghost" onClick={() => handleGenerateVariantBarcode(variant.id)}>
+                      Generate barcode
                     </Button>
                   </div>
                 </div>

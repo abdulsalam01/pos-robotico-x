@@ -15,6 +15,25 @@ export default function NotificationsMenu() {
   const [loading, setLoading] = useState(false);
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const menuRef = useRef<HTMLDivElement | null>(null);
+  const dismissedKey = "pos-notifications-dismissed";
+
+  const loadDismissed = () => {
+    if (typeof window === "undefined") {
+      return [];
+    }
+    try {
+      return JSON.parse(window.localStorage.getItem(dismissedKey) ?? "[]") as string[];
+    } catch {
+      return [];
+    }
+  };
+
+  const persistDismissed = (ids: string[]) => {
+    if (typeof window === "undefined") {
+      return;
+    }
+    window.localStorage.setItem(dismissedKey, JSON.stringify(ids));
+  };
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -31,7 +50,7 @@ export default function NotificationsMenu() {
     setLoading(true);
     const { data: variants, error } = await supabase
       .from("product_variants")
-      .select("id,bottle_size_ml,min_stock,product:products(name)")
+      .select("id,bottle_size_ml,unit_label,min_stock,product:products(name)")
       .gt("min_stock", 0);
 
     if (error || !variants) {
@@ -54,19 +73,20 @@ export default function NotificationsMenu() {
       stockMap.set(movement.variant_id, next);
     });
 
+    const dismissed = loadDismissed();
     const lowStock = variants
       .map((variant) => {
         const stock = stockMap.get(variant.id) ?? 0;
         const min = Number(variant.min_stock ?? 0);
         return {
           id: variant.id,
-          title: `${variant.product?.name ?? "Product"} · ${variant.bottle_size_ml}ml`,
+          title: `${variant.product?.name ?? "Product"} · ${variant.bottle_size_ml}${variant.unit_label ?? "ml"}`,
           detail: `Stock ${stock} / Min ${min}`,
           stock,
           min
         };
       })
-      .filter((variant) => variant.stock <= variant.min)
+      .filter((variant) => variant.stock <= variant.min && !dismissed.includes(variant.id))
       .map(({ id, title, detail }) => ({ id, title, detail }));
 
     setNotifications(lowStock);
@@ -96,7 +116,11 @@ export default function NotificationsMenu() {
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Notifications</p>
             <button
               type="button"
-              onClick={() => setNotifications([])}
+              onClick={() => {
+                const dismissed = Array.from(new Set([...loadDismissed(), ...notifications.map((item) => item.id)]));
+                persistDismissed(dismissed);
+                setNotifications([]);
+              }}
               className="text-xs font-semibold text-slate-500 hover:text-slate-700 dark:text-slate-300 dark:hover:text-white"
             >
               Clear

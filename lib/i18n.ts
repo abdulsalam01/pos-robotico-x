@@ -138,6 +138,9 @@ const TRANSLATIONS: Record<Locale, Record<string, string>> = {
     "Monitor sales, stock health, and CRM performance in one clear workspace.":
       "Pantau penjualan, kesehatan stok, dan kinerja CRM dalam satu ruang kerja.",
     "Sales pulse": "Denyut penjualan",
+    "Revenue": "Pendapatan",
+    "Average basket": "Rata-rata keranjang",
+    "Today": "Hari ini",
     "Revenue trend, average basket, and peak hours at a glance.":
       "Tren pendapatan, rata-rata keranjang, dan jam puncak sekilas.",
     "Export insights": "Ekspor wawasan",
